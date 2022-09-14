@@ -1,5 +1,5 @@
 #!/bin/sh
-#SBATCH -D /s/ls4/users/kssagan/dev
+#SBATCH -D /s/ls4/users/kssagan/compton
 #SBATCH -o %j.out
 #SBATCH -e %j.err
 #SBATCH -t 72:00:00
@@ -12,4 +12,4 @@ export MPLCONFIGDIR=/d/ls4/users/kssagan/.config/matplotlib
 export PYCUDA_CACHE_DIR=/s/ls4/users/kssagan/cache
 module load cuda 
 source /s/ls4/users/kssagan/envs/env_pht/bin/activate 
-python "/s/ls4/users/kssagan/compton/run_${names}.py" $i $charge_min_nC $charge_max_nC $n_scan 
+python "/s/ls4/users/kssagan/compton/run_${name}.py" $i $charge_min_nC $charge_max_nC $n_scan 

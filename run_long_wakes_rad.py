@@ -3,7 +3,7 @@ import os
 spec_dir ='long_wakes_rad/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
-path = '/s/ls4/users/kssagan/dev/'#'/home/kiruha/scince_repo/report/'
+path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/scince_repo/report/'
 path_input = path + 'input/'
 path_output = path + spec_dir#'output files/'
 
@@ -26,14 +26,14 @@ for dir_ in [bunch_filename,path_to_obj, path_to_p_loss]:
             
 import sys
 import argparse
-path_to_PyHEADTAIL = '/s/ls4/users/kssagan/PyHEADTAIL'#'/home/kiruha/PyHEADTAIL'
+path_to_PyHEADTAIL = '/s/ls4/users/kssagan/PyFRIENDS/PyHEADTAIL'#'/home/kiruha/PyHEADTAIL'
 sys.path.append(path_to_PyHEADTAIL)
 import numpy as np
 from scipy.constants import c, e, m_e, pi
 import time
-import pycuda.autoinit
+#import pycuda.autoinit
 import PyHEADTAIL
-from PyHEADTAIL.general.contextmanager import GPU
+#from PyHEADTAIL.general.contextmanager import GPU
 import traceback
 import pandas as pd
 import tempfile
@@ -45,7 +45,7 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 np.random.seed(int(time.time()))
 
-from PyHEADTAIL.general import pmath as pm
+#from PyHEADTAIL.general import pmath as pm
 from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
 from PyHEADTAIL.trackers.detuners import Chromaticity, AmplitudeDetuning
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap, RFSystems
@@ -285,7 +285,6 @@ for charge in charge_scan:
             'mean_z', 'mean_dp',
             'sigma_z', 'sigma_dp']))
 
-
 ## The function that performs the calculation with different intensities
 def run(bunch, intensity, bunch_monitor):  
     update_bunch(bunch,intensity,
@@ -311,3 +310,33 @@ with Pool(processes = processes) as pool:
     results = list(pool.starmap(run,iterable))
     
 print(f'compute time = {time.time()-t0}')
+
+## Plot dependence of sigma z and sigma E on currents
+sigma_z_plt = list()
+sigma_E_plt = list()
+[[sigma_z_plt.append(result[0]), sigma_E_plt.append(result[1])] for result in results]
+
+charge_scan = charge_scan*1e9
+fig, (ax1, ax3) = plt.subplots(2,1,figsize = (10,6))
+line1, = ax1.plot(charge_scan,sigma_z_plt,'-', c='r')
+ax1.set_xlabel('charge [nC]')
+ax1.set_ylabel('sigma_z [mm]')
+ax1.set_title(f'dependence of sigma_z on charge')
+ax1.grid()
+
+line3, = ax3.plot(charge_scan,sigma_E_plt,'-', c='r')
+ax3.set_xlabel('charge [nC]')
+ax3.set_ylabel('sigma_E [1e-4]')
+ax3.set_title(f'dependence of sigma_E on current')
+ax3.grid()
+ax1.scatter(current_scan, sigma_z_plt, color='r', s=20, marker='s')
+ax3.scatter(current_scan, sigma_E_plt, color='r', s=20, marker='s')
+
+plt.tight_layout()
+plt.show()
+
+fig.savefig(path_to_fig+'sigma_z_sigma_E_charge.jpg')
+save_obj(path_to_obj, [sigma_z_plt,sigma_E_plt],'data_for_plot')
+
+print(f'computing time per turn = {(time.time()-t0)/60/n_turns} min')
+
