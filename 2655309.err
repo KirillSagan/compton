@@ -1,5 +1,0 @@
-Matplotlib created a temporary config/cache directory at /tmp/matplotlib-qy3xvw5u because the default path (/d/ls4/users/kssagan/.config/matplotlib) is not a writable directory; it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
-Traceback (most recent call last):
-  File "/s/ls4/users/kssagan/compton/run_long_wakes_rad.py", line 49, in <module>
-    from PyHEADTAIL.trackers.transverse_tracking import TransverseMap
-ModuleNotFoundError: No module named 'PyHEADTAIL.trackers'

@@ -204,7 +204,7 @@ bunch_dict = make_dict(bunch)
 ## Creating an instance of the object responsible for radiation losses
 radiation_long, radiation_transverse = make_radiation(E_loss_ev, machine, Ekin, alpha_mom_compaction, 
                                                       epsn_x, epsn_y, Radiation_Damping_z/t,\
-                                                      Radiation_Damping_x/t, Radiation_Damping_y/t,I2,I3,I4,Dx_avr,Dy_avr)
+                                                      Radiation_Damping_x/t, Radiation_Damping_y/t,I2,I3,I4,None,None)
 
 
 ## Creating an instance of the object associated with wake fields
@@ -215,7 +215,7 @@ list_of_wake_sources_y = list()
 n_slices = 1000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
-factor = 40/32
+factor = 0.015
 factor_x = 1
 factor_y = 1
 inverse = -1
@@ -280,7 +280,7 @@ for charge in charge_scan:
     bunch_monitor_scan.append(BunchMonitor(
         filename=new_bunch_filename,n_steps=int(n_turns/write_every),
         write_buffer_every=write_every,
-        parameters_dict={'Q_x': Q_x,'Q_y':Q_y, 'Q_s':Q_s_corrected},
+        parameters_dict={'Q_x': Q_x,'Q_y':Q_y},
         stats_to_store = [
             'mean_z', 'mean_dp',
             'sigma_z', 'sigma_dp']))
