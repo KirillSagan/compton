@@ -133,9 +133,9 @@ dE = parameters_dict['Natural Energy Spread']
 
 natural_emmitance = parameters_dict['Natural Emittance']
 
-Radiation_Damping_x = parameters_dict['Radiation Damping H']*1e-3
-Radiation_Damping_y = parameters_dict['Radiation Damping V']*1e-3
-Radiation_Damping_z = parameters_dict['Radiation Damping E']*1e-3
+Radiation_Damping_x = parameters_dict['Radiation Damping H']
+Radiation_Damping_y = parameters_dict['Radiation Damping V']
+Radiation_Damping_z = parameters_dict['Radiation Damping E']
 
 V_RF = parameters_dict['Assuming cavities Voltage']*1e3
 
