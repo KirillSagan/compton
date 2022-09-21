@@ -1,9 +1,9 @@
 import os
 ## Specifying the paths to the files
-spec_dir ='long_full_wakes/'
+spec_dir ='long_wakes_rad/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
-path = '/s/ls4/users/kssagan/dev/'#'/home/kiruha/scince_repo/report/'
+path = '/home/kiruha/science_repo/compton/'
 path_input = path + 'input/'
 path_output = path + spec_dir#'output files/'
 
@@ -12,12 +12,12 @@ path_to_obj = path_output + 'obj/'
 filename_geom = path_input + 'ebs_geom_full.txt'
 filename_rw = path_input + 'ebs_rw_full.txt'
 path_to_readme = path_input + 'README.md'
-path_to_fig = path + spec_dir + 'figures/'
+path_to_p_loss = path_output + 'ParticleLoss/' 
 # Monitors
 monitor_path = path_output + 'monitors/'
 bunch_filename = monitor_path + 'bunch_mon/'
 
-for dir_ in [path_to_obj, path_to_fig]:
+for dir_ in [bunch_filename,path_to_obj, path_to_p_loss]:
     if not os.path.exists(dir_):
         try:
             os.makedirs(dir_)
@@ -25,9 +25,8 @@ for dir_ in [path_to_obj, path_to_fig]:
             pass  
             
 import sys
-import os
 import argparse
-path_to_PyHEADTAIL = '/s/ls4/users/kssagan/PyHEADTAIL'#'/home/kiruha/PyHEADTAIL'
+path_to_PyHEADTAIL = '/home/kiruha/PyHEADTAIL'
 sys.path.append(path_to_PyHEADTAIL)
 import numpy as np
 from scipy.constants import c, e, m_e, pi
@@ -57,6 +56,7 @@ from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMon
 
 from Visualisations import plot_longitudinal_phase_space, plot_sigma_z_sigma_E, plot_ex_ey, plot_mx_my,\
                            plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_current
+from get_Ekin import get_Ekin
 from make_WW import make_WW
 from get_WW import get_WW
 from make_radiation import make_radiation
@@ -68,11 +68,27 @@ from generate_bunch import generate_bunch
 from get_sigma_E import get_sigma_E
 from get_parameters_dict import get_parameters_dict
 from get_magnetic_structure_twi import get_magnetic_structure_twi
+from ParticleLoss import ParticleLoss
 
 from PyHEADTAIL.impedances.wakes import WakeField, WakeTable
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,SynchrotronRadiationLongitudinal
+
+## Reading arguments from command-line
+def createParser ():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('i',type=int)
+    parser.add_argument('charge_min_nC',type=float)
+    parser.add_argument('charge_max_nC',type=float)
+    parser.add_argument('n_scan',type=int)
+    return parser
+    
+parser = createParser()
+args = parser.parse_args()
+charge_min = args.charge_min_nC*1e-9
+charge_max = args.charge_max_nC*1e-9
+n_scan = args.n_scan
 
 ## Reading the parameters of the machine and the beam from the file README.md
 parameters_list = ['Energy', 'Circumference', 'Revolution time', 'Betatron tune H',
@@ -83,7 +99,7 @@ parameters_list = ['Energy', 'Circumference', 'Revolution time', 'Betatron tune 
                   'Radiation Loss', 'Natural Energy Spread', 'Natural Emittance', 'Radiation Damping H',
                   'Radiation Damping V', 'Radiation Damping E', 'Slip factor', 'Assuming cavities Voltage',
                   'Frequency', 'Harmonic Number', 'Synchronous Phase', 'Synchrotron Tune', 'Bunch Length',
-                  'Emitty from Dy', 'Emitty 1/gamma cone limit']
+                  'Emitty from Dy', 'Emitty 1/gamma cone limit', 'betaxAve', 'betayAve']
 
 parameters_dict = get_parameters_dict(path_to_readme)
 
@@ -96,13 +112,14 @@ circumference = parameters_dict['Circumference']
 
 t = parameters_dict['Revolution time']*1e-9
 
-Q_x = parameters_dict['Betatron tune H']+95
-Q_y = parameters_dict['Betatron tune V']+33
+Q_x = parameters_dict['Betatron tune H']
+Q_y = parameters_dict['Betatron tune V']
 
 alpha_mom_compaction = parameters_dict['Momentum Compaction Factor']
 
-Qpx = 0#parameters_dict['Chromaticity H']##
-Qpy = 0#parameters_dict['Chromaticity V']##
+Qpx = parameters_dict['Chromaticity H']
+Qpy = parameters_dict['Chromaticity V']
+print(f'Chromaticity x: {Qpx}\nChromaticity y: {Qpy}') 
 
 I1 = parameters_dict['Synchrotron Integral 1']
 I2 = parameters_dict['Synchrotron Integral 2']
@@ -110,22 +127,22 @@ I3 = parameters_dict['Synchrotron Integral 3']
 I4 = parameters_dict['Synchrotron Integral 4']
 I5 = parameters_dict['Synchrotron Integral 5']
 
-E_loss_ev = parameters_dict['Radiation Loss']*1e3
+E_loss_ev = parameters_dict['Radiation Loss']*1e6
 
 dE = parameters_dict['Natural Energy Spread']
 
 natural_emmitance = parameters_dict['Natural Emittance']
 
-Radiation_Damping_x = parameters_dict['Radiation Damping H']*1e-3
-Radiation_Damping_y = parameters_dict['Radiation Damping V']*1e-3
-Radiation_Damping_z = parameters_dict['Radiation Damping E']*1e-3
+Radiation_Damping_x = parameters_dict['Radiation Damping H']
+Radiation_Damping_y = parameters_dict['Radiation Damping V']
+Radiation_Damping_z = parameters_dict['Radiation Damping E']
 
 V_RF = parameters_dict['Assuming cavities Voltage']*1e3
 
 h_RF = parameters_dict['Harmonic Number']
 
 phi_s = np.pi - parameters_dict['Synchronous Phase']
-dphi_RF = 0.
+dphi_RF = phi_s
 RF_at = 'end_of_transverse'
 
 Q_s = parameters_dict['Synchrotron Tune']
@@ -134,50 +151,47 @@ p_increment = 0
 
 sigma_z = parameters_dict['Bunch Length']*1e-3
 
-epsn_x = 70e-12*beta*gamma # [m rad]
-epsn_y = 5e-12*beta*gamma # [m rad]
+epsn_x = 7.436459488204655e-09*beta*gamma # [m rad]
+epsn_y = 7.436459488204655e-09/14*beta*gamma
 
 ## Getting the twiss functions 
 s, betax, betay, alphax, alphay, Dx, Dy, accQx, accQy = get_magnetic_structure_twi(filename_magnetic)
 
-betax_avr = betax.mean()
-betay_avr = betay.mean()
-n_betax_avr = -9
-n_betay_avr = -27
-n_Dx_min = np.argmax(1/abs(Dx))
+betax_avr = parameters_dict['betaxAve']
+betay_avr = parameters_dict['betayAve']
+n_betax_avr = 10
+n_betay_avr = 8
+
 ## Creating an instance of the machine 
-
 machine = Synchrotron(optics_mode = 'non-smooth',charge= -e,
-                s=s,
-                mass=m_e,
-                p0=p0,
-                name=None,
-                alpha_x=alphax,
-                beta_x=betax,
-                D_x=Dx,
-                alpha_y=alphay,
-                beta_y=betay,
-                D_y=Dy,
-                accQ_x=accQx,
-                accQ_y=accQy,
-                Qp_x = Qpx, 
-                Qp_y = Qpy,
-                longitudinal_mode='non-linear',
-                alpha_mom_compaction=alpha_mom_compaction,
-                h_RF=h_RF,
-                V_RF=V_RF,
-                dphi_RF=dphi_RF,
-                RF_at = RF_at,
-                p_increment=p_increment)
-                
-
+		        s=s,
+		        mass=m_e,
+		        p0=p0,
+		        name=None,
+		        alpha_x=alphax,
+		        beta_x=betax,
+		        D_x=Dx,
+		        alpha_y=alphay,
+		        beta_y=betay,
+		        D_y=Dy,
+		        accQ_x=accQx,
+		        accQ_y=accQy,
+		        Qp_x = Qpx, 
+		        Qp_y = Qpy,
+		        longitudinal_mode='non-linear',
+		        alpha_mom_compaction=alpha_mom_compaction,
+		        h_RF=h_RF,
+		        V_RF=V_RF,
+		        dphi_RF=dphi_RF,
+		        RF_at = RF_at,
+		        p_increment=p_increment)
+		        
 ## Creating an instance of the bunch
 
-current = 1e-3
-intensity = current/e*t
+charge = 1.5e-9
+intensity = charge/e
 n_macroparticles = int(1e6)
 
-n_scan = 16
 bunch_scan = list()
 for i in range(n_scan):
     bunch_scan.append(generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
@@ -186,12 +200,8 @@ for i in range(n_scan):
                        machine.transverse_map.D_x[0],machine.transverse_map.D_y[0],
                        sigma_z,gamma,p0,epsn_x,epsn_y,t))
 
-z_s = (machine.circumference)*phi_s/(2*np.pi*machine.longitudinal_map.harmonics[0])
-Q_s_corrected = machine.rfbucket.Q_s*np.sqrt(np.cos(phi_s))
 bunch = bunch_scan[0]
-bunch.z += z_s
 bunch_dict = make_dict(bunch)
-
 
 ## Creating an instance of the object responsible for radiation losses
 radiation_long, radiation_transverse = make_radiation(E_loss_ev, machine, Ekin, alpha_mom_compaction, 
@@ -204,10 +214,12 @@ list_of_wake_sources_long = list()
 list_of_wake_sources_x = list()
 list_of_wake_sources_y = list()
 
-n_slices = 1500
+n_slices = 1000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
-factor = 40/32
+factor = 0.015
+factor_x = betax_avr/betax[n_betax_avr]
+factor_y = betay_avr/betay[n_betay_avr]
 inverse = -1
 n_sigma_z = 3
 ratio_interp = 4
@@ -218,7 +230,7 @@ max_z = ratio_interp*9e-2
 ##geom  
 #long                                   
 fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor, del_negative_t = False,
+get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
        filename = filename_geom, list_ = ['time','longitudinal'], new_filename = tmp_filename,
        NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
 
@@ -231,11 +243,47 @@ list_of_wake_sources_long.append(wake_table_geom_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
+#transverse x
+fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
+get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
+       filename = filename_geom, list_ = ['time','dipole_x',
+                                          'quadrupole_x'], 
+       new_filename = tmp_filename, NumberPoints = NumberPoints,
+       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
+
+wake_table_geom_trans_x,slicer = make_WW(tmp_filename,bunch, n_slices = n_slices, 
+                                       fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
+                                       list_ = ['time','dipole_x',
+                                                'quadrupole_x'],
+                                       slicing_mode = slicing_mode,
+                                       n_sigma_z = n_sigma_z)
+list_of_wake_sources_x.append(wake_table_geom_trans_x)
+os.close(fd)
+os.unlink(tmp_filename)
+
+#transverse y
+fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
+get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
+       filename = filename_geom, list_ = ['time','dipole_y',
+                                          'quadrupole_y'], 
+       new_filename = tmp_filename, NumberPoints = NumberPoints,
+       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
+
+wake_table_geom_trans_y,slicer = make_WW(tmp_filename,bunch, n_slices = n_slices, 
+                                       fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
+                                       list_ = ['time','dipole_y',
+                                                'quadrupole_y'],
+                                       slicing_mode = slicing_mode,
+                                       n_sigma_z = n_sigma_z)
+list_of_wake_sources_y.append(wake_table_geom_trans_y)
+os.close(fd)
+os.unlink(tmp_filename)
+
 
 ## rw
 #long
 fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor, del_negative_t = False,
+get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
        filename = filename_rw, list_ = ['time','longitudinal'], new_filename = tmp_filename,
        NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
 
@@ -248,50 +296,93 @@ list_of_wake_sources_long.append(wake_table_rw_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
+#transverse x
+fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
+get_WW(machine.beta,sigma_z, inverse=inverse, factor=factor,
+       filename = filename_rw, list_ = ['time','dipole_x',
+                                        'quadrupole_x'], 
+       new_filename = tmp_filename, NumberPoints = NumberPoints,
+       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
+
+wake_table_rw_trans_x,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
+                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
+                                     list_ = ['time','dipole_x',
+                                              'quadrupole_x'],
+                                     slicing_mode = slicing_mode,
+                                     n_sigma_z = n_sigma_z)
+list_of_wake_sources_x.append(wake_table_rw_trans_x)
+os.close(fd)
+os.unlink(tmp_filename)
+
+#transverse y
+fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
+get_WW(machine.beta,sigma_z, inverse=inverse, factor=factor,
+       filename = filename_rw, list_ = ['time','dipole_y',
+                                        'quadrupole_y'], 
+       new_filename = tmp_filename, NumberPoints = NumberPoints,
+       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
+
+wake_table_rw_trans_y,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
+                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
+                                     list_ = ['time','dipole_y',
+                                              'quadrupole_y'],
+                                     slicing_mode = slicing_mode,
+                                     n_sigma_z = n_sigma_z)
+list_of_wake_sources_y.append(wake_table_rw_trans_y)
+os.close(fd)
+os.unlink(tmp_filename)
+
 wake_fields_long = WakeField(slicer, *list_of_wake_sources_long)
+wake_fields_x = WakeField(slicer, *list_of_wake_sources_x)
+wake_fields_y = WakeField(slicer, *list_of_wake_sources_y)
+
 
 ## Putting everything at an instance of our ring (machine.one_turn_map)
-map_ = [wake_fields_long]
-map_.append(radiation_long)
-map_.append(machine.longitudinal_map)
+machine.one_turn_map.insert(n_betax_avr, wake_fields_x)
+machine.one_turn_map.insert(n_betay_avr, wake_fields_y)
+machine.one_turn_map.append(wake_fields_long)
 
-## Setting necessary calculation parameters
-current_max = 5e-3
-current_scan = np.linspace(0, current_max, n_scan)
-intensity_scan = current_scan/e*t
-n_turns = int(2**14)
-write_every = 10
 
-sigma_z_plt = list()
-sigma_E_plt = list()
+## Setting Intensity and necessary calculation parameters
+charge_scan = np.linspace(charge_min, charge_max, n_scan)
+intensity_scan = charge_scan/e
+n_turns = int(2e4)
+write_every = 1
+write_buffer_every = 250
+## Values to be recorded in the calculation
+cons = range(1,11)
+names_long = ['S_n_long_'+f'{i}' for i in cons]
+names_trans = ['S_n_trans_'+f'{i}' for i in cons]
+names_trans_y = ['S_n_trans_y_'+f'{i}' for i in cons]
+bunch_monitor_scan = list()
+for charge in charge_scan:
+    charge = charge*1e9 
+    new_bunch_filename = bunch_filename+f'charge={charge:.3}nC'.replace('.',',')
+    bunch_monitor_scan.append(BunchMonitor(
+        filename=new_bunch_filename,n_steps=int(n_turns/write_every),
+        write_buffer_every=write_every,
+        parameters_dict={'Q_x': Q_x,'Q_y':Q_y},
+        stats_to_store = [
+            'mean_z', 'mean_dp','mean_x','mean_y',
+            'sigma_z', 'sigma_dp', 'sigma_x','sigma_y',
+            'epsn_x', 'epsn_y']))
 
 ## The function that performs the calculation with different intensities
-def run(bunch_, intensity_):  
-    current = intensity_*e/t*1e3
-    sigma_z_scan = list()
-    sigma_E_scan = list()
-    update_bunch(bunch_,intensity_,
+def run(bunch, intensity, bunch_monitor):  
+    update_bunch(bunch,intensity,
                  bunch_dict,beta,gamma,p0)
-    
-    sigma_z_scan.append(bunch_.sigma_z()*1e3)
-    sigma_E_scan.append(get_sigma_E(bunch_))
-    
     for i in range(n_turns):
-        for m in map_:
-            m.track(bunch_)
+        with GPU(bunch) as context:
+            machine.track(bunch)
+        radiation_long.track(bunch)
+        radiation_transverse.track(bunch)
         if (i+1)%write_every == 0:
-            sigma_z_scan.append(bunch_.sigma_z()*1e3)
-            sigma_E_scan.append(get_sigma_E(bunch_))
-        if (i+1)%n_turns == 0:
-            plot_sigma_z_sigma_E(sigma_z_scan,sigma_E_scan,n_turns,write_every,
-                                     current,path=path_to_fig) 
-            plot_longitudinal_phase_space(bunch_,current,path=path_to_fig) 
-            
-    return [np.array(sigma_z_scan[-500:-1]).mean(), np.array(sigma_E_scan[-500:-1]).mean()]
+            bunch_monitor.dump(bunch)
+    return [1]
 
 iterable = list()
-for bunch_i,intensity_i in zip(bunch_scan, intensity_scan):
-    iterable.append((bunch_i,intensity_i))
+for bunch_i,intensity_i, bunch_monitor_i in zip(bunch_scan, intensity_scan, bunch_monitor_scan):
+    iterable.append((bunch_i,intensity_i,bunch_monitor_i))
 
 ## Let's start
 from multiprocessing import Process, Pool
@@ -302,33 +393,3 @@ with Pool(processes = processes) as pool:
     results = list(pool.starmap(run,iterable))
     
 print(f'compute time = {time.time()-t0}')
-
-## Plot dependence of sigma z and sigma E on currents
-sigma_z_plt = list()
-sigma_E_plt = list()
-[[sigma_z_plt.append(result[0]), sigma_E_plt.append(result[1])] for result in results]
-
-current_scan = current_scan*1e3
-fig, (ax1, ax3) = plt.subplots(2,1,figsize = (10,6))
-line1, = ax1.plot(current_scan,sigma_z_plt,'-', c='r')
-ax1.set_xlabel('current [mA]')
-ax1.set_ylabel('sigma_z [mm]')
-ax1.set_title(f'dependence of sigma_z on current')
-ax1.grid()
-
-line3, = ax3.plot(current_scan,sigma_E_plt,'-', c='r')
-ax3.set_xlabel('current [mA]')
-ax3.set_ylabel('sigma_E [1e-4]')
-ax3.set_title(f'dependence of sigma_E on current')
-ax3.grid()
-ax1.scatter(current_scan, sigma_z_plt, color='r', s=20, marker='s')
-ax3.scatter(current_scan, sigma_E_plt, color='r', s=20, marker='s')
-
-plt.tight_layout()
-plt.show()
-
-fig.savefig(path_to_fig+'sigma_z_sigma_E_intensity.jpg')
-save_obj(path_to_obj, [sigma_z_plt,sigma_E_plt],'data_for_plot')
-
-print(f'computing time per turn = {(time.time()-t0)/60/n_turns} min')
-

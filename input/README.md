@@ -23,7 +23,9 @@
    Radiation Damping H: 	1.584339402441542 [s]
    Radiation Damping V: 	1.009289216064724 [s]
    Radiation Damping E: 	0.4271293881591939 [s]
-   Slip factor : 	-0.0633305555556
+   betaxAve:	1.693224137796105
+   betayAve:	2.847126300527126e+00
+   Slip factor : 		-0.0633305555556
 
    Assuming cavities Voltage: 300.00000 [kV]
                    Frequency: 2998.701 [MHz]
