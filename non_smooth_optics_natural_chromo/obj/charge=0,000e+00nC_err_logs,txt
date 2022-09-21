@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "test.py", line 381, in <module>
+    with GPU(bunch) as context:
+  File "/home/kiruha/PyFRIENDS_python3/PyHEADTAIL/PyHEADTAIL/general/contextmanager.py", line 177, in __enter__
+    pm.update_active_dict(pm._GPU_func_dict)
+AttributeError: module 'PyHEADTAIL.general.pmath' has no attribute '_GPU_func_dict'

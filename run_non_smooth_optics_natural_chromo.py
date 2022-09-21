@@ -89,6 +89,7 @@ args = parser.parse_args()
 charge_min = args.charge_min_nC*1e-9
 charge_max = args.charge_max_nC*1e-9
 n_scan = args.n_scan
+i = args.i
 
 ## Reading the parameters of the machine and the beam from the file README.md
 parameters_list = ['Energy', 'Circumference', 'Revolution time', 'Betatron tune H',
@@ -192,15 +193,12 @@ charge = 1.5e-9
 intensity = charge/e
 n_macroparticles = int(1e6)
 
-bunch_scan = list()
-for i in range(n_scan):
-    bunch_scan.append(generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
-                       machine.transverse_map.alpha_y[0],machine.transverse_map.beta_x[0], 
-                       machine.transverse_map.beta_y[0], machine.longitudinal_map,
-                       machine.transverse_map.D_x[0],machine.transverse_map.D_y[0],
-                       sigma_z,gamma,p0,epsn_x,epsn_y,t))
+bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
+               machine.transverse_map.alpha_y[0],machine.transverse_map.beta_x[0], 
+               machine.transverse_map.beta_y[0], machine.longitudinal_map,
+               machine.transverse_map.D_x[0],machine.transverse_map.D_y[0],
+               sigma_z,gamma,p0,epsn_x,epsn_y,t)
 
-bunch = bunch_scan[0]
 bunch_dict = make_dict(bunch)
 
 ## Creating an instance of the object responsible for radiation losses
@@ -345,51 +343,55 @@ machine.one_turn_map.append(wake_fields_long)
 
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
+charge = charge_scan[i]
 intensity_scan = charge_scan/e
 n_turns = int(2e4)
 write_every = 1
 write_buffer_every = 250
 ## Values to be recorded in the calculation
-cons = range(1,11)
-names_long = ['S_n_long_'+f'{i}' for i in cons]
-names_trans = ['S_n_trans_'+f'{i}' for i in cons]
-names_trans_y = ['S_n_trans_y_'+f'{i}' for i in cons]
-bunch_monitor_scan = list()
-for charge in charge_scan:
-    charge = charge*1e9 
-    new_bunch_filename = bunch_filename+f'charge={charge:.3}nC'.replace('.',',')
-    bunch_monitor_scan.append(BunchMonitor(
-        filename=new_bunch_filename,n_steps=int(n_turns/write_every),
-        write_buffer_every=write_every,
-        parameters_dict={'Q_x': Q_x,'Q_y':Q_y},
-        stats_to_store = [
-            'mean_z', 'mean_dp','mean_x','mean_y',
-            'sigma_z', 'sigma_dp', 'sigma_x','sigma_y',
-            'epsn_x', 'epsn_y']))
+#cons = range(1,11)
+#names_long = ['S_n_long_'+f'{i}' for i in cons]
+#names_trans = ['S_n_trans_'+f'{i}' for i in cons]
+#names_trans_y = ['S_n_trans_y_'+f'{i}' for i in cons]
+#bunch_monitor_scan = list()
 
-## The function that performs the calculation with different intensities
-def run(bunch, intensity, bunch_monitor):  
-    update_bunch(bunch,intensity,
-                 bunch_dict,beta,gamma,p0)
+charge = charge*1e9 
+new_bunch_filename = bunch_filename+f'charge={charge:.3}nC'.replace('.',',')
+bunch_monitor = BunchMonitor(
+		filename=new_bunch_filename,n_steps=int(n_turns/write_every),
+		write_buffer_every=write_every,
+		parameters_dict={'Q_x': Q_x,'Q_y':Q_y},
+		stats_to_store = [
+		    'mean_z', 'mean_dp','mean_x','mean_y',
+		    'sigma_z', 'sigma_dp', 'sigma_x','sigma_y',
+		    'epsn_x', 'epsn_y'])
+
+
+## Let's start
+print('start tracking!')
+t0 = time.time()
+
+try:
+    update_bunch(bunch, intensity,
+                 bunch_dict, beta, gamma, p0)
+    print(f'intensity = {intensity:.3e}')
     for i in range(n_turns):
+        if (time.time()-t0)/60/60 >= (24*3-0.1):
+            raise RuntimeError      
         with GPU(bunch) as context:
             machine.track(bunch)
         radiation_long.track(bunch)
         radiation_transverse.track(bunch)
         if (i+1)%write_every == 0:
             bunch_monitor.dump(bunch)
-    return [1]
-
-iterable = list()
-for bunch_i,intensity_i, bunch_monitor_i in zip(bunch_scan, intensity_scan, bunch_monitor_scan):
-    iterable.append((bunch_i,intensity_i,bunch_monitor_i))
-
-## Let's start
-from multiprocessing import Process, Pool
-processes = n_scan ## Numbers of threads used for calculation
-print('start tracking!')
-t0 = time.time()
-with Pool(processes = processes) as pool:
-    results = list(pool.starmap(run,iterable))
+except:
+    filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
+    log_info = traceback.format_exc()
+    print(log_info)
+    with open(filename_err, 'w') as f:
+        f.write(log_info)
     
-print(f'compute time = {time.time()-t0}')
+finally:
+    print(f'Qpx = {Qpx}\tQpy = {Qpy}\nCharge={charge:.3}nC\nTurn={i}\nComputing time per turn = {(time.time()-t0)/60/n_turns} min')
+    bunch_dict = make_dict(bunch)
+    save_obj(path=path_to_obj, obj=bunch_dict, name=f'turns={i},charge={charge:.3e}nC')
