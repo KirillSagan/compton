@@ -344,7 +344,7 @@ machine.one_turn_map.append(wake_fields_long)
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
 charge = charge_scan[i]
-intensity_scan = charge_scan/e
+intensity = charge/e
 n_turns = int(2e4)
 write_every = 1
 write_buffer_every = 250
@@ -394,4 +394,4 @@ except:
 finally:
     print(f'Qpx = {Qpx}\tQpy = {Qpy}\nCharge={charge:.3}nC\nTurn={i}\nComputing time per turn = {(time.time()-t0)/60/n_turns} min')
     bunch_dict = make_dict(bunch)
-    save_obj(path=path_to_obj, obj=bunch_dict, name=f'turns={i},charge={charge:.3e}nC')
+    #save_obj(path=path_to_obj, obj=bunch_dict, name=f'turns={i},charge={charge:.3e}nC')
