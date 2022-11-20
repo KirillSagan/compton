@@ -1,6 +1,6 @@
 import os
 ## Specifying the paths to the files
-spec_dir ='non_smooth_optics_natural_chromo/'
+spec_dir ='inj_offset/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
@@ -152,6 +152,7 @@ p_increment = 0
 
 sigma_z = parameters_dict['Bunch Length']*1e-3
 
+septum_dx = 3e-3
 epsn_x = 7.436459488204655e-09*beta*gamma # [m rad]
 epsn_y = 7.436459488204655e-09/14*beta*gamma
 
@@ -191,14 +192,14 @@ machine = Synchrotron(optics_mode = 'non-smooth',charge= -e,
 
 charge = 1.5e-9
 intensity = charge/e
-n_macroparticles = int(1e6)
+n_macroparticles = int(1e5)
 
 bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
                machine.transverse_map.alpha_y[0],machine.transverse_map.beta_x[0], 
                machine.transverse_map.beta_y[0], machine.longitudinal_map,
                machine.transverse_map.D_x[0],machine.transverse_map.D_y[0],
                sigma_z,gamma,p0,epsn_x,epsn_y,t)
-
+bunch.x += septum_dx
 bunch_dict = make_dict(bunch)
 
 ## Creating an instance of the object responsible for radiation losses
@@ -206,139 +207,6 @@ radiation_long, radiation_transverse = make_radiation(E_loss_ev, machine, Ekin, 
                                                       epsn_x, epsn_y, Radiation_Damping_z/t,\
                                                       Radiation_Damping_x/t, Radiation_Damping_y/t,I2,I3,I4,Dx[-1],Dy[-1])
 
-
-## Creating an instance of the object associated with wake fields
-list_of_wake_sources_long = list()
-list_of_wake_sources_x = list()
-list_of_wake_sources_y = list()
-
-n_slices = 1000
-slicing_mode = 'n_sigma_z'#'fixed_cuts'
-fixed_cuts_perc_min_max = 0.5
-factor = 0.015
-factor_x = betax_avr/betax[n_betax_avr]
-factor_y = betay_avr/betay[n_betay_avr]
-inverse = -1
-n_sigma_z = 3
-ratio_interp = 4
-NumberPoints = int(3291*ratio_interp)
-min_z = -ratio_interp*9e-2
-max_z = ratio_interp*9e-2
-
-##geom  
-#long                                   
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_geom, list_ = ['time','longitudinal'], new_filename = tmp_filename,
-       NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
-
-wake_table_geom_long,slicer = make_WW(tmp_filename, bunch,n_slices = n_slices, 
-                                      fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                      list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
-                                      n_sigma_z = n_sigma_z)
-
-list_of_wake_sources_long.append(wake_table_geom_long)
-os.close(fd)
-os.unlink(tmp_filename)
-
-#transverse x
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_geom, list_ = ['time','dipole_x',
-                                          'quadrupole_x'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_geom_trans_x,slicer = make_WW(tmp_filename,bunch, n_slices = n_slices, 
-                                       fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                       list_ = ['time','dipole_x',
-                                                'quadrupole_x'],
-                                       slicing_mode = slicing_mode,
-                                       n_sigma_z = n_sigma_z)
-list_of_wake_sources_x.append(wake_table_geom_trans_x)
-os.close(fd)
-os.unlink(tmp_filename)
-
-#transverse y
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_geom, list_ = ['time','dipole_y',
-                                          'quadrupole_y'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_geom_trans_y,slicer = make_WW(tmp_filename,bunch, n_slices = n_slices, 
-                                       fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                       list_ = ['time','dipole_y',
-                                                'quadrupole_y'],
-                                       slicing_mode = slicing_mode,
-                                       n_sigma_z = n_sigma_z)
-list_of_wake_sources_y.append(wake_table_geom_trans_y)
-os.close(fd)
-os.unlink(tmp_filename)
-
-
-## rw
-#long
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_rw, list_ = ['time','longitudinal'], new_filename = tmp_filename,
-       NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
-
-wake_table_rw_long,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
-                                    fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                    list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
-                                    n_sigma_z = n_sigma_z)
-
-list_of_wake_sources_long.append(wake_table_rw_long)
-os.close(fd)
-os.unlink(tmp_filename)
-
-#transverse x
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta,sigma_z, inverse=inverse, factor=factor,
-       filename = filename_rw, list_ = ['time','dipole_x',
-                                        'quadrupole_x'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_rw_trans_x,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
-                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                     list_ = ['time','dipole_x',
-                                              'quadrupole_x'],
-                                     slicing_mode = slicing_mode,
-                                     n_sigma_z = n_sigma_z)
-list_of_wake_sources_x.append(wake_table_rw_trans_x)
-os.close(fd)
-os.unlink(tmp_filename)
-
-#transverse y
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta,sigma_z, inverse=inverse, factor=factor,
-       filename = filename_rw, list_ = ['time','dipole_y',
-                                        'quadrupole_y'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_rw_trans_y,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
-                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                     list_ = ['time','dipole_y',
-                                              'quadrupole_y'],
-                                     slicing_mode = slicing_mode,
-                                     n_sigma_z = n_sigma_z)
-list_of_wake_sources_y.append(wake_table_rw_trans_y)
-os.close(fd)
-os.unlink(tmp_filename)
-
-wake_fields_long = WakeField(slicer, *list_of_wake_sources_long)
-wake_fields_x = WakeField(slicer, *list_of_wake_sources_x)
-wake_fields_y = WakeField(slicer, *list_of_wake_sources_y)
-
-
-## Putting everything at an instance of our ring (machine.one_turn_map)
-machine.one_turn_map.insert(n_betax_avr, wake_fields_x)
-machine.one_turn_map.insert(n_betay_avr, wake_fields_y)
-machine.one_turn_map.append(wake_fields_long)
 
 
 ## Setting Intensity and necessary calculation parameters
