@@ -213,7 +213,7 @@ radiation_long, radiation_transverse = make_radiation(E_loss_ev, machine, Ekin, 
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
 charge = charge_scan[i]
 intensity = charge/e
-n_turns = int(2e4)
+n_turns = int(2e5)
 write_every = 1
 write_buffer_every = 250
 ## Values to be recorded in the calculation

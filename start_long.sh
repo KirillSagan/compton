@@ -1,5 +1,5 @@
 #!/bin/sh
-declare -a names=("inj_test")
+declare -a names=("inj_on_axis")
 
 for name in "${names[@]}"
 do
