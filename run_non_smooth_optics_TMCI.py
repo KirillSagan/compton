@@ -1,6 +1,6 @@
 import os
 ## Specifying the paths to the files
-spec_dir ='non_smooth_optics_natural_chromo/'
+spec_dir ='TMCI_0.3mm_bunch/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
@@ -153,7 +153,7 @@ p_increment = 0
 sigma_z = parameters_dict['Bunch Length']*1e-3
 
 epsn_x = 7.436459488204655e-09*beta*gamma # [m rad]
-epsn_y = 7.436459488204655e-09/14*beta*gamma
+epsn_y = 7.436459488204655e-09*beta*gamma # [m rad]
 
 ## Getting the twiss functions 
 s, betax, betay, alphax, alphay, Dx, Dy, accQx, accQy = get_magnetic_structure_twi(filename_magnetic)
@@ -191,7 +191,7 @@ machine = Synchrotron(optics_mode = 'non-smooth',charge= -e,
 
 charge = 1.5e-9
 intensity = charge/e
-n_macroparticles = int(1e6)
+n_macroparticles = int(3e5)
 
 bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
                machine.transverse_map.alpha_y[0],machine.transverse_map.beta_x[0], 
@@ -212,10 +212,10 @@ list_of_wake_sources_long = list()
 list_of_wake_sources_x = list()
 list_of_wake_sources_y = list()
 
-n_slices = 1000
+n_slices = 800
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
-factor = 0.015
+factor = circumference/1100
 factor_x = betax_avr/betax[n_betax_avr]
 factor_y = betay_avr/betay[n_betay_avr]
 inverse = -1
@@ -346,13 +346,14 @@ charge_scan = np.linspace(charge_min, charge_max, n_scan)
 charge = charge_scan[i]
 intensity = charge/e
 n_turns = int(2e4)
-write_every = 1
+write_every = 5
 write_buffer_every = 250
+write_obj_every = 5000
 ## Values to be recorded in the calculation
-#cons = range(1,11)
+cons = range(1,7)
 #names_long = ['S_n_long_'+f'{i}' for i in cons]
-#names_trans = ['S_n_trans_'+f'{i}' for i in cons]
-#names_trans_y = ['S_n_trans_y_'+f'{i}' for i in cons]
+names_trans = ['S_n_trans_'+f'{i}' for i in cons]
+names_trans_y = ['S_n_trans_y_'+f'{i}' for i in cons]
 #bunch_monitor_scan = list()
 
 charge = charge*1e9 
@@ -364,7 +365,7 @@ bunch_monitor = BunchMonitor(
 		stats_to_store = [
 		    'mean_z', 'mean_dp','mean_x','mean_y',
 		    'sigma_z', 'sigma_dp', 'sigma_x','sigma_y',
-		    'epsn_x', 'epsn_y'])
+		    'epsn_x', 'epsn_y',*names_trans,*names_trans_y])
 
 
 ## Let's start
@@ -384,6 +385,9 @@ try:
         radiation_transverse.track(bunch)
         if (i+1)%write_every == 0:
             bunch_monitor.dump(bunch)
+        if (i+1)%write_obj_every == 0:
+            bunch_new_dict = make_dict(bunch)
+            save_obj(path_to_obj,bunch_new_dict,f'beam_charge={charge:.3}nC_i={i}')
 except:
     filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
     log_info = traceback.format_exc()

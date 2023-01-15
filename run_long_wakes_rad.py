@@ -1,6 +1,7 @@
 import os
+import shutil
 ## Specifying the paths to the files
-spec_dir ='long_wakes_rad/'
+spec_dir ='long_wakes_rad_1.2/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/scince_repo/report/'
@@ -11,19 +12,21 @@ filename_magnetic = path_input + 'twi.txt'
 path_to_obj = path_output + 'obj/'
 filename_geom = path_input + 'ebs_geom_full.txt'
 filename_rw = path_input + 'ebs_rw_full.txt'
-path_to_readme = path_input + 'README.md'
-path_to_p_loss = path_output + 'ParticleLoss/' 
+path_to_readme = path_input + 'README.md' 
+path_to_fig = path_output + 'figures/'
 # Monitors
 monitor_path = path_output + 'monitors/'
 bunch_filename = monitor_path + 'bunch_mon/'
 
-for dir_ in [bunch_filename,path_to_obj, path_to_p_loss]:
+for dir_ in [bunch_filename,path_to_obj, path_to_fig]:
     if not os.path.exists(dir_):
         try:
             os.makedirs(dir_)
         except:
-            pass  
-            
+            pass
+    else:
+        shutil.rmtree(dir_)  
+        os.makedirs(dir_)   
 import sys
 import argparse
 path_to_PyHEADTAIL = '/s/ls4/users/kssagan/PyFRIENDS/PyHEADTAIL'#'/home/kiruha/PyHEADTAIL'
@@ -149,10 +152,10 @@ Q_s = parameters_dict['Synchrotron Tune']
 
 p_increment = 0
 
-sigma_z = parameters_dict['Bunch Length']*1e-3
+sigma_z =1.2e-3#parameters_dict['Bunch Length']*1e-3
 
 epsn_x = 7.436459488204655e-09*beta*gamma # [m rad]
-epsn_y = 7.436459488204655e-09/14*beta*gamma
+epsn_y = 7.436459488204655e-09*beta*gamma
 
 ## Getting the twiss functions 
 s, betax, betay, alphax, alphay, Dx, Dy, accQx, accQy = get_magnetic_structure_twi(filename_magnetic)
@@ -215,7 +218,7 @@ list_of_wake_sources_y = list()
 n_slices = 1000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
-factor = 0.015
+factor = circumference/1100
 factor_x = 1
 factor_y = 1
 inverse = -1
@@ -269,9 +272,10 @@ machine.one_turn_map.insert(3, wake_fields_y)"""
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
 intensity_scan = charge_scan/e
-n_turns = int(2e4)
-write_every = 10
-write_buffer_every = 250
+n_turns = int(5e4)
+write_every = 25
+write_buffer_every = 500
+write_obj_every = 10000
 ## Values to be recorded in the calculation
 bunch_monitor_scan = list()
 for charge in charge_scan:
@@ -285,17 +289,36 @@ for charge in charge_scan:
             'mean_z', 'mean_dp',
             'sigma_z', 'sigma_dp']))
 
+
 ## The function that performs the calculation with different intensities
-def run(bunch, intensity, bunch_monitor):  
+def run(bunch, intensity,bunch_monitor):  
+    current = intensity*e/t*1e3
+    sigma_z_scan = list()
+    sigma_E_scan = list()
     update_bunch(bunch,intensity,
                  bunch_dict,beta,gamma,p0)
+    
+    sigma_z_scan.append(bunch.sigma_z()*1e3)
+    sigma_E_scan.append(bunch.sigma_dp()*1e4)
+    bunch_dict_new = make_dict(bunch)
+    save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={0}')
     for i in range(n_turns):
         long_map.track(bunch)
         wake_fields_long.track(bunch)
         radiation_long.track(bunch)
         if (i+1)%write_every == 0:
+            sigma_z_scan.append(bunch.sigma_z()*1e3)
+            sigma_E_scan.append(bunch.sigma_dp()*1e4)
             bunch_monitor.dump(bunch)
-    return [1]
+        if (i+1)%write_obj_every == 0:
+            bunch_dict_new = make_dict(bunch)
+            save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={i}')
+        if (i+1)%n_turns == 0:
+            plot_sigma_z_sigma_E(sigma_z_scan,sigma_E_scan,n_turns,write_every,
+                                     current,path=path_to_fig) 
+            plot_longitudinal_phase_space(bunch_,current,path=path_to_fig) 
+            
+    return [np.array(sigma_z_scan[-500:-1]).mean(), np.array(sigma_E_scan[-500:-1]).mean()]
 
 iterable = list()
 for bunch_i,intensity_i, bunch_monitor_i in zip(bunch_scan, intensity_scan, bunch_monitor_scan):
