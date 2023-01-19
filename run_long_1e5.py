@@ -1,10 +1,10 @@
 import os
 import shutil
 ## Specifying the paths to the files
-spec_dir ='long_wakes_rad_1.5_1e5/'
+spec_dir ='long_10sigma_1e6_smooth/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
-path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/scince_repo/report/'
+path =  '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
 path_input = path + 'input/'
 path_output = path + spec_dir#'output files/'
 
@@ -18,7 +18,7 @@ path_to_fig = path_output + 'figures/'
 monitor_path = path_output + 'monitors/'
 bunch_filename = monitor_path + 'bunch_mon/'
 
-for dir_ in [bunch_filename,path_to_obj, path_to_fig]:
+for dir_ in [bunch_filename, path_to_obj, path_to_fig]:
     if not os.path.exists(dir_):
         try:
             os.makedirs(dir_)
@@ -56,6 +56,7 @@ from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
 from PyHEADTAIL.machines.synchrotron import Synchrotron
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMonitor
+from PyHEADTAIL.aperture.aperture import RectangularApertureZ
 
 from Visualisations_new import plot_longitudinal_phase_space_color, plot_sigma_z_sigma_E_mean_z_mean_E,\
                            plot_ex_ey, plot_mx_my, plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_charge
@@ -90,6 +91,7 @@ def createParser ():
     
 parser = createParser()
 args = parser.parse_args()
+n_scan = args.n_scan
 charge_min = args.charge_min_nC*1e-9
 charge_max = args.charge_max_nC*1e-9
 
@@ -193,7 +195,6 @@ charge = 1.5e-9
 intensity = charge/e
 n_macroparticles = int(1e5)
 
-n_scan = 16
 bunch_scan = list()
 for i in range(n_scan):
     bunch_scan.append(generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
@@ -212,9 +213,9 @@ radiation_long, radiation_transverse = make_radiation(E_loss_ev, machine, Ekin, 
 
 
 ## Creating an instance of the object associated with wake fields
-list_of_wake_sources_long = list()
-list_of_wake_sources_x = list()
-list_of_wake_sources_y = list()
+list_of_impedance_sources_long = list()
+list_of_impedance_sources_x = list()
+list_of_impedance_sources_y = list()
 
 n_slices = 1000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
@@ -225,9 +226,9 @@ factor_y = 1
 inverse = -1
 n_sigma_z = 10
 ratio_interp = 1.5
-NumberPoints = int(3291*2*ratio_interp)
-min_z = -ratio_interp*9e-2
-max_z = ratio_interp*9e-2
+NumberPoints = None
+min_z = None
+max_z = None
 
 ##geom  
 #long                                   
@@ -241,7 +242,7 @@ impedance_table_geom_long,slicer = make_Impedance(tmp_filename, bunch,n_slices =
                                       list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
                                       n_sigma_z = n_sigma_z)
 
-list_of_wake_sources_long.append(impedance_table_geom_long)
+list_of_impedance_sources_long.append(impedance_table_geom_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
@@ -258,17 +259,21 @@ impedance_table_rw_long,slicer = make_Impedance(tmp_filename, bunch, n_slices = 
                                     list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
                                     n_sigma_z = n_sigma_z)
 
-list_of_wake_sources_long.append(impedance_table_rw_long)
+list_of_impedance_sources_long.append(impedance_table_rw_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
 
-impedances_long = Impedance(slicer, *list_of_wake_sources_long)
+Impedance_long = Impedance(slicer, *list_of_impedance_sources_long)
 
 """## Putting everything at an instance of our ring (machine.one_turn_map)
 machine.one_turn_map.insert(1, wake_fields_long)
 machine.one_turn_map.insert(2, wake_fields_x)
 machine.one_turn_map.insert(3, wake_fields_y)"""
+
+# Creating z Aperture 
+z_lost = 25e-3
+Aperture_z = RectangularApertureZ(z_low = -z_lost, z_high = z_lost)
 
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
@@ -277,6 +282,7 @@ n_turns = int(5e4)
 write_every = 5
 write_buffer_every = 500
 write_obj_every = 10000
+check_aperture_every = 50
 ## Values to be recorded in the calculation
 bunch_monitor_scan = list()
 for charge in charge_scan:
@@ -304,29 +310,37 @@ def run(bunch, intensity,bunch_monitor):
     sigma_z_scan.append(bunch.sigma_z())
     sigma_E_scan.append(bunch.sigma_dp())
     mean_z_scan.append(bunch.mean_z())
-    mean_E_scan.append(bunch.mean_sdp())
+    mean_E_scan.append(bunch.mean_dp())
     
     bunch_dict_new = make_dict(bunch)
-    save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={0}')
-    for i in range(n_turns):
-        long_map.track(bunch)
-        impedances_long.track(bunch)
-        #radiation_long.track(bunch)
-        if (i+1)%write_every == 0:
-            sigma_z_scan.append(bunch.sigma_z())
-            sigma_E_scan.append(bunch.sigma_dp())
-            mean_z_scan.append(bunch.mean_z())
-            mean_E_scan.append(bunch.mean_dp())
-            #bunch_monitor.dump(bunch)
-        if (i+1)%write_obj_every == 0:
-            bunch_dict_new = make_dict(bunch)
-            save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={i}')
-        if (i+1)%n_turns == 0:
-            plot_sigma_z_sigma_E_mean_z_mean_E(sigma_z_scan,sigma_E_scan,
-                                            mean_z_scan, mean_E_scan, n_turns,
-                                            write_every, charge,path=path_to_fig) 
-            plot_longitudinal_phase_space_color(bunch, charge, path=path_to_fig,
-                                                name=f'longitudinal_phase_space_after_{n_turns}_turns')
+    try:
+        for i in range(n_turns):
+            long_map.track(bunch)
+            Impedance_long.track(bunch)
+            #radiation_long.track(bunch)
+            if (i+1)%check_aperture_every == 0:
+                Aperture_z.track(bunch)
+            if (i+1)%write_every == 0:
+                sigma_z_scan.append(bunch.sigma_z())
+                sigma_E_scan.append(bunch.sigma_dp())
+                mean_z_scan.append(bunch.mean_z())
+                mean_E_scan.append(bunch.mean_dp())
+                #bunch_monitor.dump(bunch)
+            if (i+1)%write_obj_every == 0:
+                bunch_dict_new = make_dict(bunch)
+                save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={i}')
+            if (i+1)%n_turns == 0:
+                plot_sigma_z_sigma_E_mean_z_mean_E(np.array(sigma_z_scan),np.array(sigma_E_scan),
+                                                np.array(mean_z_scan), np.array(mean_E_scan), n_turns,
+                                                write_every, charge,path=path_to_fig, savefig = True) 
+                plot_longitudinal_phase_space_color(bunch, charge, path=path_to_fig, savefig = True,
+                                                    name=f'longitudinal_phase_space_after_{n_turns}_turns')
+    except:
+        filename_err = path_to_obj + f'charge={charge*1e9:.3e}nC_err_logs.txt'.replace('.',',')
+        log_info = traceback.format_exc()
+        print(log_info)
+        with open(filename_err, 'w') as f:
+            f.write(log_info)
             
     return [np.array(sigma_z_scan[-100:-1]).mean(), np.array(sigma_E_scan[-100:-1]).mean()]
 
@@ -339,6 +353,7 @@ from multiprocessing import Process, Pool
 processes = n_scan ## Numbers of threads used for calculation
 print('start tracking!')
 t0 = time.time()
+
 with Pool(processes = processes) as pool:
     results = list(pool.starmap(run,iterable))
     
@@ -349,7 +364,7 @@ sigma_z_plt = list()
 sigma_E_plt = list()
 [[sigma_z_plt.append(result[0]), sigma_E_plt.append(result[1])] for result in results]
 
-plot_sigma_z_sigma_E_charge(sigma_z_plt,sigma_E_plt,charge_scan, 
+plot_sigma_z_sigma_E_charge(np.array(sigma_z_plt),np.array(sigma_E_plt),charge_scan, 
                                  path=path_to_fig,name=f'sigma_z_sigma_E_charges_after_{n_turns}_turns.jpg')
 
 save_obj(path_to_obj, [sigma_z_plt,sigma_E_plt],'data_for_plot')
