@@ -1,7 +1,7 @@
 import os
 import shutil
 ## Specifying the paths to the files
-spec_dir ='long_wakes_rad_1.5/'
+spec_dir ='long_wakes_rad_1.5_1e5/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/scince_repo/report/'
@@ -61,6 +61,7 @@ from Visualisations_new import plot_longitudinal_phase_space_color, plot_sigma_z
                            plot_ex_ey, plot_mx_my, plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_charge
 from get_Ekin import get_Ekin
 from make_WW import make_WW
+from make_Impedance import make_Impedance
 from get_WW import get_WW
 from make_radiation import make_radiation
 from update_bunch import update_bunch
@@ -240,7 +241,7 @@ impedance_table_geom_long,slicer = make_Impedance(tmp_filename, bunch,n_slices =
                                       list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
                                       n_sigma_z = n_sigma_z)
 
-list_of_wake_sources_long.append(wake_table_geom_long)
+list_of_wake_sources_long.append(impedance_table_geom_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
@@ -252,17 +253,17 @@ get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor, del_negative_t = F
        filename = filename_rw, list_ = ['time','longitudinal'], new_filename = tmp_filename,
        NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
 
-wake_table_rw_long,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
+impedance_table_rw_long,slicer = make_Impedance(tmp_filename, bunch, n_slices = n_slices, 
                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
                                     list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
                                     n_sigma_z = n_sigma_z)
 
-list_of_wake_sources_long.append(wake_table_rw_long)
+list_of_wake_sources_long.append(impedance_table_rw_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
 
-wake_fields_long = WakeField(slicer, *list_of_wake_sources_long)
+impedances_long = Impedance(slicer, *list_of_wake_sources_long)
 
 """## Putting everything at an instance of our ring (machine.one_turn_map)
 machine.one_turn_map.insert(1, wake_fields_long)
@@ -272,7 +273,7 @@ machine.one_turn_map.insert(3, wake_fields_y)"""
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
 intensity_scan = charge_scan/e
-n_turns = int(3e4)
+n_turns = int(5e4)
 write_every = 5
 write_buffer_every = 500
 write_obj_every = 10000
@@ -309,14 +310,14 @@ def run(bunch, intensity,bunch_monitor):
     save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={0}')
     for i in range(n_turns):
         long_map.track(bunch)
-        wake_fields_long.track(bunch)
+        impedances_long.track(bunch)
         #radiation_long.track(bunch)
         if (i+1)%write_every == 0:
             sigma_z_scan.append(bunch.sigma_z())
             sigma_E_scan.append(bunch.sigma_dp())
             mean_z_scan.append(bunch.mean_z())
             mean_E_scan.append(bunch.mean_dp())
-            #bunch_monitor.dump(bunch)
+            bunch_monitor.dump(bunch)
         if (i+1)%write_obj_every == 0:
             bunch_dict_new = make_dict(bunch)
             save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={i}')
