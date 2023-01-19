@@ -18,7 +18,7 @@ path_to_fig = path_output + 'figures/'
 monitor_path = path_output + 'monitors/'
 bunch_filename = monitor_path + 'bunch_mon/'
 
-for dir_ in [path_to_obj, path_to_fig]:
+for dir_ in [path_to_obj, path_to_fig, bunch_filename]:
     if not os.path.exists(dir_):
         try:
             os.makedirs(dir_)
@@ -325,7 +325,7 @@ def run(bunch, intensity,bunch_monitor):
                 sigma_E_scan.append(bunch.sigma_dp())
                 mean_z_scan.append(bunch.mean_z())
                 mean_E_scan.append(bunch.mean_dp())
-                #bunch_monitor.dump(bunch)
+                bunch_monitor.dump(bunch)
             if (i+1)%write_obj_every == 0:
                 bunch_dict_new = make_dict(bunch)
                 save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={i}')

@@ -18,7 +18,7 @@ path_to_fig = path_output + 'figures/'
 monitor_path = path_output + 'monitors/'
 bunch_filename = monitor_path + 'bunch_mon/'
 
-for dir_ in [path_to_obj, path_to_fig]:
+for dir_ in [path_to_obj, path_to_fig, bunch_filename]:
     if not os.path.exists(dir_):
         try:
             os.makedirs(dir_)

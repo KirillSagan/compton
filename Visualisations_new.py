@@ -4,6 +4,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+MEDIUM_SIZE = 20
+plt.rc('font', size = MEDIUM_SIZE)          
+plt.rc('axes', titlesize = MEDIUM_SIZE)     
+plt.rc('axes', labelsize=MEDIUM_SIZE)    
+plt.rc('xtick', labelsize=MEDIUM_SIZE)   
+plt.rc('ytick', labelsize=MEDIUM_SIZE)    
+plt.rc('legend', fontsize=MEDIUM_SIZE)               
+    #plt.rc('figure', titlesize = MEDIUM_SIZE)  
+plt.rc('lines', linewidth = 2) 
+
 def plot_transerse_phase_space(ax1, ax2, bunch,current, path=None,name='transerse_phase_space', fig = None):
     #fig, (ax1, ax2) = plt.subplots(2,1,figsize=(7,12))
     ax1.cla()
@@ -24,15 +34,15 @@ def plot_transerse_phase_space(ax1, ax2, bunch,current, path=None,name='transers
         fig.savefig(path+name+f' current = {current:.2e} mA'.replace('.',',')+'.jpg')
     
 def plot_longitudinal_phase_space_color(bunch, charge, path=None,
-                                        name='longitudinal_phase_space', fig = None):
+                                        name='longitudinal_phase_space', savefig = None):
 
-    ax1 = density_scatter(x = bunch.z*1e3, y= bunch.dp, bins = 800, 
-                        s = 0.04,  cmap=cm.viridis, n_sigma = 3.5)
+    fig, ax1 = density_scatter(x = bunch.z*1e3, y= bunch.dp, bins = 600, 
+                        s = 0.07,  cmap=cm.viridis, n_sigma = 3.5)
     ax1.ticklabel_format(style='sci', scilimits=(0,0), axis='y')
     ax1.set_title(name.strip('.jpg'))
     plt.tight_layout()                                          
     plt.show()
-    if fig != None:
+    if savefig != None:
         fig.savefig(path+name+f'_charge_=_{charge*1e9:.3e}nC'.replace('.',',')+'.jpg')
 
 def plot_longitudinal_phase_space(ax1, bunch, charge, path=None,
@@ -53,8 +63,8 @@ def plot_longitudinal_phase_space(ax1, bunch, charge, path=None,
 
 def plot_sigma_z_sigma_E_mean_z_mean_E(sigma_z_scan, sigma_E_scan,
 					            mean_z_scan, mean_E_scan, n_turns, write_every,
-                         		charge, path=None, name='sigma_z_sigma_E', fig = None):
-    fig, (axt,axb) = plt.subplots(2,2,figsize = (25,14))
+                         		charge, path=None, name='sigma_z_sigma_E', savefig = None):
+    fig, (axt,axb) = plt.subplots(2,2,figsize = (20,10))
     ax1, ax3 = axt
     ax2, ax4 = axb
 
@@ -84,7 +94,7 @@ def plot_sigma_z_sigma_E_mean_z_mean_E(sigma_z_scan, sigma_E_scan,
     ax4.ticklabel_format(style='sci', scilimits=(0,0), axis='y')
     ax4.plot(x,mean_E_scan,'-', c='r')
     ax4.set_xlabel('turns')
-    ax4.set_ylabel('sigma dE/E []')
+    ax4.set_ylabel('mean dE/E []')
     ax4.set_title(f'dependence of mean E on turns')
     ax4.grid(True)
     
@@ -94,7 +104,7 @@ def plot_sigma_z_sigma_E_mean_z_mean_E(sigma_z_scan, sigma_E_scan,
     ax4.set_xlim(x.min(),x.max()+1)
     plt.tight_layout()
     #plt.show()
-    if fig != None:
+    if savefig != None:
         fig.savefig(path+name+f' charge = {charge*1e9:.2e} nC'.replace('.',',')+'.jpg')
         
         
@@ -254,17 +264,17 @@ def plot_sigma_z_sigma_E_charge(sigma_z_plt,sigma_E_plt,charge_scan,
     fig, (ax1, ax3) = plt.subplots(2,1,figsize = (10,6))
     ax1.plot(charge_scan*1e9,sigma_z_plt*1e3,'-', c='r')
     ax1.set_xlabel('charge [nC]')
-    ax1.set_ylabel('sigma_z [mm]')
+    ax1.set_ylabel('sigma z [mm]')
     ax1.set_title(f'dependence of sigma_z on charge')
     ax1.grid(True)
 
-    ax3.plot(charge_scan,sigma_E_plt,'-', c='r')
+    ax3.plot(charge_scan*1e9,sigma_E_plt,'-', c='r')
     ax3.set_xlabel('charge [nC]')
-    ax3.set_ylabel('sigma_E []')
+    ax3.set_ylabel('sigma E []')
     ax3.set_title(f'dependence of sigma_E on charge')
     ax3.grid(True)
-    ax1.scatter(charge_scan, sigma_z_plt, color='r', s=20, marker='s')
-    ax3.scatter(charge_scan, sigma_E_plt, color='r', s=20, marker='s')
+    ax1.scatter(charge_scan*1e9, sigma_z_plt*1e3, color='r', s=25, marker='s')
+    ax3.scatter(charge_scan*1e9, sigma_E_plt, color='r', s=25, marker='s')
 
     plt.tight_layout()
     plt.show()
