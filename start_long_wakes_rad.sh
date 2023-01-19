@@ -1,8 +1,7 @@
 #!/bin/sh
-declare -a names=("long_wakes_rad_1e5")
+declare -a names=("long_1e5" "long_1e5_smooth" "long_1e6" "long_5sigma_1e6_precise" "long_10sigma_1e6_precise")
 
-for name in "${names[@]}"
-do
+for name in ${names[@]}; do
 
 export name
 export charge_min_nC=0.0
