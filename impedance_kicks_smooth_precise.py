@@ -56,7 +56,7 @@ class ImpedanceKick(Printing, metaclass=ABCMeta):
         self.n_turns_wake = n_turns_wake
 
     @abstractmethod
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply the corresponding wake kick to the
         bunch conjugate momenta using the given slice_set. Only
         particles within the slicing region, i.e particles_within_cuts
@@ -144,21 +144,22 @@ class ImpedanceKick(Printing, metaclass=ABCMeta):
 
 class ConstantImpedanceKickX(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a constant wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick.
         """
-        wake_potential_interp = self.wake_function(times)
+        wake_potential_interp = self.wake_function(times_interp)
         impedance = np.fft.rfft(wake_potential_interp)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
+        new_wake_potential_interp = interp1d(times_interp, new_wake_potential)(times)
 
-        constant_kick = self._wake_factor(bunch)*new_wake_potential
+        constant_kick = self._wake_factor(bunch)*new_wake_potential_interp
 
         p_idx = slice_set_list[0].particles_within_cuts_slice
         s_idx = slice_set_list[0].slice_index_of_particle[p_idx]
@@ -167,21 +168,22 @@ class ConstantImpedanceKickX(ImpedanceKick):
 
 class ConstantImpedanceKickY(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a constant wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick.
         """
-        wake_potential_interp = self.wake_function(times)
+        wake_potential_interp = self.wake_function(times_interp)
         impedance = np.fft.rfft(wake_potential_interp)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
+        new_wake_potential_interp = interp1d(times_interp, new_wake_potential)(times)
 
-        constant_kick = self._wake_factor(bunch)*new_wake_potential
+        constant_kick = self._wake_factor(bunch)*new_wake_potential_interp
 
         p_idx = slice_set_list[0].particles_within_cuts_slice
         s_idx = slice_set_list[0].slice_index_of_particle[p_idx]
@@ -190,21 +192,22 @@ class ConstantImpedanceKickY(ImpedanceKick):
 
 class ConstantImpedanceKickZ(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a constant wake kick to bunch.dp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
         experience the kick.
         """
-        wake_potential_interp = self.wake_function(times)
+        wake_potential_interp = self.wake_function(times_interp)
         impedance = np.fft.rfft(wake_potential_interp)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
+        new_wake_potential_interp = interp1d(times_interp, new_wake_potential)(times)
 
-        constant_kick = self._wake_factor(bunch)*new_wake_potential
+        constant_kick = self._wake_factor(bunch)*new_wake_potential_interp
 
         p_idx = slice_set_list[0].particles_within_cuts_slice
         s_idx = slice_set_list[0].slice_index_of_particle[p_idx]
@@ -215,7 +218,7 @@ class ConstantImpedanceKickZ(ImpedanceKick):
 
 class DipoleImpedanceKickX(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a dipolar wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
@@ -229,8 +232,8 @@ class DipoleImpedanceKickX(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -242,7 +245,7 @@ class DipoleImpedanceKickX(ImpedanceKick):
 
 class DipoleImpedanceKickXY(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a dipolar (cross term x-y) wake kick
         to bunch.xp using the given slice_set. Only particles within
         the slicing region, i.e particles_within_cuts (defined by the
@@ -256,8 +259,8 @@ class DipoleImpedanceKickXY(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)    
@@ -270,7 +273,7 @@ class DipoleImpedanceKickXY(ImpedanceKick):
 
 class DipoleImpedanceKickY(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a dipolar wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
@@ -284,8 +287,8 @@ class DipoleImpedanceKickY(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -297,7 +300,7 @@ class DipoleImpedanceKickY(ImpedanceKick):
 
 class DipoleImpedanceKickYX(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a dipolar (cross term y-x) wake kick
         to bunch.yp using the given slice_set. Only particles within
         the slicing region, i.e particles_within_cuts (defined by the
@@ -311,8 +314,8 @@ class DipoleImpedanceKickYX(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -328,7 +331,7 @@ class DipoleImpedanceKickYX(ImpedanceKick):
 
 class QuadrupoleImpedanceKickX(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a quadrupolar wake kick to bunch.xp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
@@ -337,8 +340,8 @@ class QuadrupoleImpedanceKickX(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = np.fft.rfft(wake_potential_interp)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -352,7 +355,7 @@ class QuadrupoleImpedanceKickX(ImpedanceKick):
 
 class QuadrupoleImpedanceKickXY(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a quadrupolar (cross term x-y) wake
         kick to bunch.xp using the given slice_set. Only particles
         within the slicing region, i.e particles_within_cuts (defined by
@@ -361,8 +364,8 @@ class QuadrupoleImpedanceKickXY(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = np.fft.rfft(wake_potential_interp)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -376,7 +379,7 @@ class QuadrupoleImpedanceKickXY(ImpedanceKick):
 
 class QuadrupoleImpedanceKickY(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a quadrupolar wake kick to bunch.yp
         using the given slice_set. Only particles within the slicing
         region, i.e particles_within_cuts (defined by the slice_set)
@@ -385,8 +388,8 @@ class QuadrupoleImpedanceKickY(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = np.fft.rfft(wake_potential_interp)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -400,7 +403,7 @@ class QuadrupoleImpedanceKickY(ImpedanceKick):
 
 class QuadrupoleImpedanceKickYX(ImpedanceKick):
 
-    def apply(self, bunch, times, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
+    def apply(self, bunch, times, times_interp, lambda_z_fft, lambda_z_wake_fft, slice_set_list):
         """Calculate and apply a quadrupolar (cross term y-x) wake
         kick to bunch.yp using the given slice_set. Only particles
         within the slicing region, i.e particles_within_cuts (defined by
@@ -409,8 +412,8 @@ class QuadrupoleImpedanceKickYX(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = np.fft.rfft(wake_potential_interp)
         with np.errstate(invalid='ignore'):
-        	lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        	lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
