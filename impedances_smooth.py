@@ -48,7 +48,7 @@ class Impedance(Element):
     longitudinal bunch distribution (SliceSet instances) a number of
     turns back. """
 
-    def __init__(self, slicer, *wake_sources):
+    def __init__(self, slicer, *wake_sources, sigma_z_wake = 1e-3):
         """ Accepts a list of WakeSource objects. Each WakeSource object
         knows how to generate its corresponding WakeKick objects. The
         collection of all the WakeKick objects of each of the passed
@@ -68,7 +68,7 @@ class Impedance(Element):
         archived in a deque. In parallel to the slice_set_deque,
         there is a slice_set_age_deque to keep track of the age of
         each of the SliceSet instances."""
-        self.sigma_z_wake = 1e-3
+        self.sigma_z_wake = sigma_z_wake
         self.slicer = slicer 
         
         self.wake_sources = wake_sources
