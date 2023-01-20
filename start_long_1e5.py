@@ -1,5 +1,5 @@
 #!/bin/sh
-declare -a names=("long_1e6_smooth" "long_1e5_smooth" "long_1e6" "long_1e5" "long_5sigma_1e6_precise" "long_10sigma_1e6_precise")
+declare -a names=("long")
 
 for name in ${names[@]}; do
 

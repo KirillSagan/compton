@@ -1,7 +1,7 @@
 import os
 import shutil
 ## Specifying the paths to the files
-spec_dir ='long_10sigma_1e6_smooth/'
+spec_dir ='long_10sigma_1e6/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path =  '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'

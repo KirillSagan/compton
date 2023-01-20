@@ -1,7 +1,7 @@
 import os
 import shutil
 ## Specifying the paths to the files
-spec_dir ='long_10sigma_1e5/'
+spec_dir ='long_1mm/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path =  '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
@@ -75,7 +75,7 @@ from get_parameters_dict import get_parameters_dict
 from get_magnetic_structure_twi import get_magnetic_structure_twi
 from ParticleLoss import ParticleLoss
 
-from PyHEADTAIL.impedances.impedances import Impedance, ImpedanceTable
+from PyHEADTAIL.impedances.impedances_smooth import Impedance, ImpedanceTable
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,SynchrotronRadiationLongitudinal
@@ -155,7 +155,7 @@ Q_s = parameters_dict['Synchrotron Tune']
 
 p_increment = 0
 
-sigma_z =1.5e-3#parameters_dict['Bunch Length']*1e-3
+sigma_z =parameters_dict['Bunch Length']*1e-3
 
 epsn_x = 7.436459488204655e-09*beta*gamma # [m rad]
 epsn_y = 7.436459488204655e-09*beta*gamma
@@ -325,7 +325,7 @@ def run(bunch, intensity,bunch_monitor):
                 sigma_E_scan.append(bunch.sigma_dp())
                 mean_z_scan.append(bunch.mean_z())
                 mean_E_scan.append(bunch.mean_dp())
-                #bunch_monitor.dump(bunch)
+                bunch_monitor.dump(bunch)
             if (i+1)%write_obj_every == 0:
                 bunch_dict_new = make_dict(bunch)
                 save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={i}')

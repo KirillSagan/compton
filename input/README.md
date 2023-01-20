@@ -1,6 +1,7 @@
 ```
 
    ******** AT Ring Parmater Summary ********
+   dir_name 			long_1mm
    Energy: 			0.060000 [GeV]
    Circumference: 		10.197 [m]
    Revolution time: 		34.014711874 [ns] (0.27241 [MHz]) 

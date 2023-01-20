@@ -1,7 +1,7 @@
 import os
 import shutil
 ## Specifying the paths to the files
-spec_dir ='long_10sigma_1e5/'
+spec_dir ='long_5sigma_1e6_less_precise/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path =  '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
@@ -18,7 +18,7 @@ path_to_fig = path_output + 'figures/'
 monitor_path = path_output + 'monitors/'
 bunch_filename = monitor_path + 'bunch_mon/'
 
-for dir_ in [bunch_filename, path_to_obj, path_to_fig]:
+for dir_ in [path_to_obj, path_to_fig, bunch_filename]:
     if not os.path.exists(dir_):
         try:
             os.makedirs(dir_)
@@ -62,7 +62,7 @@ from Visualisations_new import plot_longitudinal_phase_space_color, plot_sigma_z
                            plot_ex_ey, plot_mx_my, plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_charge
 from get_Ekin import get_Ekin
 from make_WW import make_WW
-from make_Impedance import make_Impedance
+from make_Impedance_smooth_precise import make_Impedance
 from get_WW import get_WW
 from make_radiation import make_radiation
 from update_bunch import update_bunch
@@ -75,7 +75,7 @@ from get_parameters_dict import get_parameters_dict
 from get_magnetic_structure_twi import get_magnetic_structure_twi
 from ParticleLoss import ParticleLoss
 
-from PyHEADTAIL.impedances.impedances import Impedance, ImpedanceTable
+from PyHEADTAIL.impedances.impedances_smooth_precise import Impedance, ImpedanceTable
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,SynchrotronRadiationLongitudinal
@@ -155,7 +155,7 @@ Q_s = parameters_dict['Synchrotron Tune']
 
 p_increment = 0
 
-sigma_z =1.5e-3#parameters_dict['Bunch Length']*1e-3
+sigma_z =1.0e-3#parameters_dict['Bunch Length']*1e-3
 
 epsn_x = 7.436459488204655e-09*beta*gamma # [m rad]
 epsn_y = 7.436459488204655e-09*beta*gamma
@@ -217,14 +217,14 @@ list_of_impedance_sources_long = list()
 list_of_impedance_sources_x = list()
 list_of_impedance_sources_y = list()
 
-n_slices = 2000
+n_slices = 1000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
 factor = 0.015
 factor_x = 1
 factor_y = 1
 inverse = -1
-n_sigma_z = 10
+n_sigma_z = 5
 ratio_interp = 1.5
 NumberPoints = None
 min_z = None
@@ -263,8 +263,9 @@ list_of_impedance_sources_long.append(impedance_table_rw_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
-
-Impedance_long = Impedance(slicer, *list_of_impedance_sources_long)
+dz = 1e-5
+z_max = 20e-3
+Impedance_long = Impedance(slicer, *list_of_impedance_sources_long,dz = dz, z_max = z_max )
 
 """## Putting everything at an instance of our ring (machine.one_turn_map)
 machine.one_turn_map.insert(1, wake_fields_long)
@@ -317,7 +318,7 @@ def run(bunch, intensity,bunch_monitor):
         for i in range(n_turns):
             long_map.track(bunch)
             Impedance_long.track(bunch)
-            #radiation_long.track(bunch)
+            radiation_long.track(bunch)
             if (i+1)%check_aperture_every == 0:
                 Aperture_z.track(bunch)
             if (i+1)%write_every == 0:
