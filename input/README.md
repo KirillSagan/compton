@@ -1,7 +1,7 @@
 ```
 
    ******** AT Ring Parmater Summary ********
-   dir_name 			long_1mm
+   spec_dir: 			long_1mm_CSR
    Energy: 			0.060000 [GeV]
    Circumference: 		10.197 [m]
    Revolution time: 		34.014711874 [ns] (0.27241 [MHz]) 
@@ -34,7 +34,7 @@
    Synchronous Phase:  3.14157869096 [rad] (179.9992 [deg])
    Linear Energy Acceptance:  5.67699 %
    Synchrotron Tune:   0.07170001 (0.81975 kHz or 332.30 turns) 
-   Bunch Length:       1.0 [mm], 9.63998 [ps]
+   Bunch Length:       0.3 [mm], 9.63998 [ps]
 
    Emitty from Dy:  0.00000 [nm]
    Emitty 1/gamma cone limit:  0.04528 [pm]

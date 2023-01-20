@@ -17,6 +17,6 @@ def get_parameters_dict(path_readme):
                     try:
                         parameters_dict[key] = float(row[i+1])
                     except:
-                        pass
+                        parameters_dict[key] = row[i+1]
                     break
     return parameters_dict
