@@ -1,7 +1,7 @@
 ```
 
    ******** AT Ring Parmater Summary ********
-   spec_dir: 			long_1mm_CSR
+   spec_dir: 			long_0.3mm_CSR/
    Energy: 			0.060000 [GeV]
    Circumference: 		10.197 [m]
    Revolution time: 		34.014711874 [ns] (0.27241 [MHz]) 

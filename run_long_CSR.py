@@ -70,14 +70,13 @@ charge_max = args.charge_max_nC*1e-9
 
                   
 ## Specifying the paths to the files
-path =  '/home/kiruha/science_repo/compton/'
+path =  '/s/ls4/users/kssagan/compton/'
 path_input = path + 'input/'
 path_to_readme = path_input + 'README.md' 
 parameters_dict = get_parameters_dict(path_to_readme)
 
 
 spec_dir = parameters_dict['spec_dir']
-path =  '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
 path_output = path + spec_dir#'output files/'
 
 filename_magnetic = path_input + 'twi.txt'
@@ -285,7 +284,7 @@ Aperture_z = RectangularApertureZ(z_low = -z_lost, z_high = z_lost)
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
 intensity_scan = charge_scan/e
-n_turns = int(5e4)
+n_turns = int(2e4)
 write_every = 5
 write_buffer_every = 500
 write_obj_every = 10000
@@ -324,7 +323,7 @@ def run(bunch, intensity,bunch_monitor):
         for i in range(n_turns):
             long_map.track(bunch)
             Impedance_long.track(bunch)
-            #radiation_long.track(bunch)
+            radiation_long.track(bunch)
             if (i+1)%check_aperture_every == 0:
                 Aperture_z.track(bunch)
             if (i+1)%write_every == 0:
