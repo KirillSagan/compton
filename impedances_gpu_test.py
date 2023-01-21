@@ -29,7 +29,7 @@ from scipy.interpolate import interp1d
 from scipy.stats import norm
 from abc import ABCMeta, abstractmethod
 
-from PyHEADTAIL.impedances.impedance_kicks import *
+from PyHEADTAIL.impedances.impedance_kicks_gpu_test import *
 from PyHEADTAIL.general.element import Element, Printing
 from PyHEADTAIL.general.decorators import deprecated
 from PyHEADTAIL.particles.slicing import UniformBinSlicer

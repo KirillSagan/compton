@@ -1,14 +1,14 @@
 #!/bin/sh
-declare -a names=("non_smooth_optics_natural_chromo")
+declare -a names=("non_smooth_optics_CSR")
 
 for name in "${names[@]}"
 do
 
 export name
-export charge_min_nC=0.0
-export charge_max_nC=3.0
-export n_scan=16
-for i in {0..16}
+export charge_min_nC=0.5
+export charge_max_nC=0.5
+export n_scan=1
+for i in {0..0}
 do
 
 export i

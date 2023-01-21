@@ -71,7 +71,7 @@ from get_parameters_dict import get_parameters_dict
 from get_magnetic_structure_twi import get_magnetic_structure_twi
 from ParticleLoss import ParticleLoss
 
-from PyHEADTAIL.impedances.impedances_smooth import Impedance, ImpedanceTable
+from PyHEADTAIL.impedances.impedances_gpu_test import Impedance, ImpedanceTable
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,SynchrotronRadiationLongitudinal
@@ -119,8 +119,8 @@ Q_y = parameters_dict['Betatron tune V']
 
 alpha_mom_compaction = parameters_dict['Momentum Compaction Factor']
 
-Qpx = 0
-Qpy = 0
+Qpx = parameters_dict['Chromaticity H']
+Qpy = parameters_dict['Chromaticity V']
 print(f'Chromaticity x: {Qpx}\nChromaticity y: {Qpy}') 
 
 I1 = parameters_dict['Synchrotron Integral 1']
@@ -192,7 +192,7 @@ machine = Synchrotron(optics_mode = 'non-smooth',charge= -e,
 
 charge = 1.5e-9
 intensity = charge/e
-n_macroparticles = int(3e5)
+n_macroparticles = int(1e6)
 
 bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
                machine.transverse_map.alpha_y[0],machine.transverse_map.beta_x[0], 
@@ -213,14 +213,14 @@ list_of_wake_sources_long = list()
 list_of_wake_sources_x = list()
 list_of_wake_sources_y = list()
 
-n_slices = 800
+n_slices = 2000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
 factor = 1/4
 factor_x = betax_avr/betax[n_betax_avr]
 factor_y = betay_avr/betay[n_betay_avr]
 inverse = -1
-n_sigma_z = 3
+n_sigma_z = 10
 ratio_interp = 4
 NumberPoints = int(5e4)
 min_z = -50e-3
