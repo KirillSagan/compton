@@ -1,11 +1,11 @@
 #!/bin/sh
-declare -a names=("long_1e6_smooth" "long_1e5_smooth" "long_1e6" "long_1e5" "long_5sigma_1e6_precise" "long_10sigma_1e6_precise")
+declare -a names=("long_CSR_wo_wakes")
 
 for name in ${names[@]}; do
 
 export name
 export charge_min_nC=0.0
-export charge_max_nC=15.0
+export charge_max_nC=0.15
 export n_scan=16
 for i in {0..0}
 do
