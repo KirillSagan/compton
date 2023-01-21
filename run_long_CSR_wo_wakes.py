@@ -270,7 +270,7 @@ list_of_impedance_sources_long.append(impedance_table_CSR_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
-Impedance_long = Impedance(slicer, impedance_table_CSR_long)
+Impedance_long = Impedance(slicer, impedance_table_CSR_long, sigma_z_wake = 0.3e-3)
 
 """## Putting everything at an instance of our ring (machine.one_turn_map)
 machine.one_turn_map.insert(1, wake_fields_long)

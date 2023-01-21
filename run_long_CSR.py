@@ -266,11 +266,11 @@ impedance_table_CSR_long,slicer = make_Impedance(tmp_filename, bunch, n_slices =
                                     list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
                                     n_sigma_z = n_sigma_z)
 
-list_of_impedance_sources_long.append(impedance_table_CSR_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
 Impedance_long = Impedance(slicer, *list_of_impedance_sources_long)
+Impedance_CSR = Impedance(slicer, impedance_table_CSR_long, sigma_z_wake = 0.3e-3)
 
 """## Putting everything at an instance of our ring (machine.one_turn_map)
 machine.one_turn_map.insert(1, wake_fields_long)
@@ -323,6 +323,7 @@ def run(bunch, intensity,bunch_monitor):
         for i in range(n_turns):
             long_map.track(bunch)
             Impedance_long.track(bunch)
+            Impedance_CSR.track(bunch)
             radiation_long.track(bunch)
             if (i+1)%check_aperture_every == 0:
                 Aperture_z.track(bunch)
