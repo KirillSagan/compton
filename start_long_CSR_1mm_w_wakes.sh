@@ -1,5 +1,5 @@
 #!/bin/sh
-declare -a names=("long_CSR")
+declare -a names=("long_CSR_1mm_w_wakes")
 
 for name in ${names[@]}; do
 
@@ -7,7 +7,7 @@ export name
 export charge_min_nC=0.0
 export charge_max_nC=1.5
 export n_scan=16
-for i in {0..0}
+for i in {0..15}
 do
 
 export i

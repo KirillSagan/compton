@@ -1,6 +1,6 @@
 import os
 ## Specifying the paths to the files
-spec_dir ='T_non_smooth_CSR/'
+spec_dir ='T_non_smooth_CSR_03mm/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
 path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
@@ -11,7 +11,7 @@ filename_magnetic = path_input + 'twi.txt'
 path_to_obj = path_output + 'obj/'
 filename_geom = path_input + 'ebs_geom_full.txt'
 filename_rw = path_input + 'ebs_rw_full.txt'
-filename_CSR = path_input + 'Shielded_CSR_wake_03mm.txt' 
+filename_CSR = path_input + 'Shielded_CSR_wake_03mm_20.txt' 
 path_to_readme = path_input + 'README.md'
 path_to_p_loss = path_output + 'ParticleLoss/' 
 # Monitors
@@ -54,6 +54,7 @@ from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
 from PyHEADTAIL.machines.synchrotron import Synchrotron
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMonitor
+from PyHEADTAIL.aperture.aperture import RectangularApertureZ, EllipticalApertureXY
 
 from Visualisations import plot_longitudinal_phase_space, plot_sigma_z_sigma_E, plot_ex_ey, plot_mx_my,\
                            plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_current
@@ -252,6 +253,14 @@ machine.one_turn_map.insert(n_BEND_3, Impedance_CSR)
 machine.one_turn_map.insert(n_BEND_2, Impedance_CSR)
 machine.one_turn_map.insert(n_BEND_1, Impedance_CSR)
 
+# Creating z Aperture 
+z_lost = 50e-3
+Aperture_z = RectangularApertureZ(z_low = -z_lost, z_high = z_lost)
+
+# Creating xy Aperture
+x_aperture = 25e-3
+y_aperture = 10e-3
+Aperture_xy = EllipticalApertureXY(x_aperture, y_aperture)
 
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
@@ -261,6 +270,7 @@ n_turns = int(2e4)
 write_every = 1
 write_buffer_every = 250
 write_obj_every = 5000
+check_aperture_every = 50
 ## Values to be recorded in the calculation
 cons = range(1,7)
 #names_long = ['S_n_long_'+f'{i}' for i in cons]
@@ -292,6 +302,9 @@ try:
         for i in range(n_turns):
             machine.track(bunch)
             bunch_monitor.dump(bunch)
+            if (i+1)%check_aperture_every == 0:
+                Aperture_z.track(bunch)
+                Aperture_xy.track(bunch)
 except:
     filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
     log_info = traceback.format_exc()

@@ -76,14 +76,14 @@ path_to_readme = path_input + 'README.md'
 parameters_dict = get_parameters_dict(path_to_readme)
 
 
-spec_dir = parameters_dict['spec_dir']
+spec_dir = 'long_CSR_1.0mm/'#parameters_dict['spec_dir']
 path_output = path + spec_dir#'output files/'
 
 filename_magnetic = path_input + 'twi.txt'
 path_to_obj = path_output + 'obj/'
 filename_geom = path_input + 'ebs_geom_full.txt'
 filename_rw = path_input + 'ebs_rw_full.txt'
-filename_CSR = path_input + 'Shielded_CSR_wake_03mm.txt' 
+filename_CSR = path_input + 'Shielded_CSR_wake_03mm_20.txt' 
 path_to_fig = path_output + 'figures/'
 # Monitors
 monitor_path = path_output + 'monitors/'
@@ -146,7 +146,7 @@ Q_s = parameters_dict['Synchrotron Tune']
 
 p_increment = 0
 
-sigma_z =parameters_dict['Bunch Length']*1e-3
+sigma_z = 1.0e-3#parameters_dict['Bunch Length']*1e-3
 
 epsn_x = 7.436459488204655e-09*beta*gamma # [m rad]
 epsn_y = 7.436459488204655e-09*beta*gamma
@@ -269,7 +269,7 @@ impedance_table_CSR_long,slicer = make_Impedance(tmp_filename, bunch, n_slices =
 os.close(fd)
 os.unlink(tmp_filename)
 
-Impedance_long = Impedance(slicer, *list_of_impedance_sources_long)
+#Impedance_long = Impedance(slicer, *list_of_impedance_sources_long)
 Impedance_CSR = Impedance(slicer, impedance_table_CSR_long, sigma_z_wake = 0.3e-3)
 
 """## Putting everything at an instance of our ring (machine.one_turn_map)
@@ -278,7 +278,7 @@ machine.one_turn_map.insert(2, wake_fields_x)
 machine.one_turn_map.insert(3, wake_fields_y)"""
 
 # Creating z Aperture 
-z_lost = 25e-3
+z_lost = 50e-3
 Aperture_z = RectangularApertureZ(z_low = -z_lost, z_high = z_lost)
 
 ## Setting Intensity and necessary calculation parameters
@@ -306,42 +306,22 @@ for charge in charge_scan:
 ## The function that performs the calculation with different intensities
 def run(bunch, intensity,bunch_monitor):  
     charge = intensity*e
-    sigma_z_scan = list()
-    sigma_E_scan = list()
-    mean_z_scan = list()
-    mean_E_scan = list()
     update_bunch(bunch,intensity,
                  bunch_dict,beta,gamma,p0)
     
-    sigma_z_scan.append(bunch.sigma_z())
-    sigma_E_scan.append(bunch.sigma_dp())
-    mean_z_scan.append(bunch.mean_z())
-    mean_E_scan.append(bunch.mean_dp())
     
     bunch_dict_new = make_dict(bunch)
     try:
         for i in range(n_turns):
             long_map.track(bunch)
-            Impedance_long.track(bunch)
             Impedance_CSR.track(bunch)
-            radiation_long.track(bunch)
             if (i+1)%check_aperture_every == 0:
                 Aperture_z.track(bunch)
             if (i+1)%write_every == 0:
-                sigma_z_scan.append(bunch.sigma_z())
-                sigma_E_scan.append(bunch.sigma_dp())
-                mean_z_scan.append(bunch.mean_z())
-                mean_E_scan.append(bunch.mean_dp())
                 bunch_monitor.dump(bunch)
-            if (i+1)%write_obj_every == 0:
-                bunch_dict_new = make_dict(bunch)
-                save_obj(path_to_obj,bunch_dict_new,f'bunch_data_charge={intensity*e*1e9:.3}nC_turn={i}')
-            if (i+1)%n_turns == 0:
-                plot_sigma_z_sigma_E_mean_z_mean_E(np.array(sigma_z_scan),np.array(sigma_E_scan),
-                                                np.array(mean_z_scan), np.array(mean_E_scan), n_turns,
-                                                write_every, charge,path=path_to_fig, savefig = True) 
-                plot_longitudinal_phase_space_color(bunch, charge, path=path_to_fig, savefig = True,
-                                                    name=f'longitudinal_phase_space_after_{n_turns}_turns')
+
+        plot_longitudinal_phase_space_color(bunch, charge, path=path_to_fig, savefig = True,
+                                                    name=f'long_ph_sp_after_{n_turns}_turns')
     except:
         filename_err = path_to_obj + f'charge={charge*1e9:.3e}nC_err_logs.txt'.replace('.',',')
         log_info = traceback.format_exc()
@@ -349,7 +329,7 @@ def run(bunch, intensity,bunch_monitor):
         with open(filename_err, 'w') as f:
             f.write(log_info)
             
-    return [np.array(sigma_z_scan[-100:-1]).mean(), np.array(sigma_E_scan[-100:-1]).mean()]
+    return 1
 
 iterable = list()
 for bunch_i,intensity_i, bunch_monitor_i in zip(bunch_scan, intensity_scan, bunch_monitor_scan):
@@ -365,16 +345,6 @@ with Pool(processes = processes) as pool:
     results = list(pool.starmap(run,iterable))
     
 print(f'compute time = {time.time()-t0}')
-
-## Plot dependence of sigma z and sigma E on currents
-sigma_z_plt = list()
-sigma_E_plt = list()
-[[sigma_z_plt.append(result[0]), sigma_E_plt.append(result[1])] for result in results]
-
-plot_sigma_z_sigma_E_charge(np.array(sigma_z_plt),np.array(sigma_E_plt),charge_scan, 
-                                 path=path_to_fig,name=f'sigma_z_sigma_E_charges_after_{n_turns}_turns.jpg')
-
-save_obj(path_to_obj, [sigma_z_plt,sigma_E_plt],'data_for_plot')
 
 print(f'computing time per turn = {(time.time()-t0)/60/n_turns} min')
 
