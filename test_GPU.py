@@ -3,7 +3,7 @@ import os
 spec_dir ='T_non_smooth_CSR/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
-path = '/home/kiruha/science_repo/compton/'
+path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
 path_input = path + 'input/'
 path_output = path + spec_dir#'output files/'
 
@@ -28,7 +28,7 @@ for dir_ in [bunch_filename,path_to_obj, path_to_p_loss]:
 import sys
 import argparse
 path_to_PyHEADTAIL = '/s/ls4/users/kssagan/PyFRIENDS/PyHEADTAIL'#'/home/kiruha/PyHEADTAIL'
-#sys.path.append(path_to_PyHEADTAIL)
+sys.path.append(path_to_PyHEADTAIL)
 import numpy as np
 from scipy.constants import c, e, m_e, pi
 import time
@@ -58,7 +58,7 @@ from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMon
 from Visualisations import plot_longitudinal_phase_space, plot_sigma_z_sigma_E, plot_ex_ey, plot_mx_my,\
                            plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_current
 from get_Ekin import get_Ekin
-from make_Impedance import make_Impedance
+from make_Impedance_gpu import make_Impedance
 from get_WW import get_WW
 from make_radiation import make_radiation
 from update_bunch import update_bunch
@@ -71,7 +71,7 @@ from get_parameters_dict import get_parameters_dict
 from get_magnetic_structure_twi import get_magnetic_structure_twi
 from ParticleLoss import ParticleLoss
 
-from PyHEADTAIL.impedances.impedances_smooth import Impedance, ImpedanceTable
+from PyHEADTAIL.impedances.impedances_gpu import Impedance, ImpedanceTable
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,SynchrotronRadiationLongitudinal
@@ -86,11 +86,11 @@ def createParser ():
     return parser
     
 parser = createParser()
-#args = parser.parse_args()
-charge_min = 0.5e-9#args.charge_min_nC*1e-9
-charge_max = 0.5e-9#args.charge_max_nC*1e-9
-n_scan = 1#args.n_scan
-i = 0#args.i
+args = parser.parse_args()
+charge_min = args.charge_min_nC*1e-9
+charge_max = args.charge_max_nC*1e-9
+n_scan = args.n_scan
+i = args.i
 
 ## Reading the parameters of the machine and the beam from the file README.md
 parameters_list = ['Energy', 'Circumference', 'Revolution time', 'Betatron tune H',
@@ -119,8 +119,8 @@ Q_y = parameters_dict['Betatron tune V']
 
 alpha_mom_compaction = parameters_dict['Momentum Compaction Factor']
 
-Qpx = 0
-Qpy = 0
+Qpx = parameters_dict['Chromaticity H']
+Qpy = parameters_dict['Chromaticity V']
 print(f'Chromaticity x: {Qpx}\nChromaticity y: {Qpy}') 
 
 I1 = parameters_dict['Synchrotron Integral 1']
@@ -192,7 +192,7 @@ machine = Synchrotron(optics_mode = 'non-smooth',charge= -e,
 
 charge = 1.5e-9
 intensity = charge/e
-n_macroparticles = int(3e5)
+n_macroparticles = int(1e6)
 
 bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
                machine.transverse_map.alpha_y[0],machine.transverse_map.beta_x[0], 
@@ -213,14 +213,14 @@ list_of_wake_sources_long = list()
 list_of_wake_sources_x = list()
 list_of_wake_sources_y = list()
 
-n_slices = 800
+n_slices = 2000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
 factor = 1/4
 factor_x = betax_avr/betax[n_betax_avr]
 factor_y = betay_avr/betay[n_betay_avr]
 inverse = -1
-n_sigma_z = 3
+n_sigma_z = 10
 ratio_interp = 4
 NumberPoints = int(5e4)
 min_z = -50e-3
@@ -247,18 +247,18 @@ n_BEND_2 = 22
 n_BEND_3 = 47
 n_BEND_4 = 51
 ## Putting everything at an instance of our ring (machine.one_turn_map)
-#machine.one_turn_map.insert(n_BEND_4, Impedance_CSR)
-#machine.one_turn_map.insert(n_BEND_3, Impedance_CSR)
-#machine.one_turn_map.insert(n_BEND_2, Impedance_CSR)
-#machine.one_turn_map.insert(n_BEND_1, Impedance_CSR)
+machine.one_turn_map.insert(n_BEND_4, Impedance_CSR)
+machine.one_turn_map.insert(n_BEND_3, Impedance_CSR)
+machine.one_turn_map.insert(n_BEND_2, Impedance_CSR)
+machine.one_turn_map.insert(n_BEND_1, Impedance_CSR)
 
 
 ## Setting Intensity and necessary calculation parameters
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
 charge = charge_scan[i]
 intensity = charge/e
-n_turns = int(2e4)
-write_every = 5
+n_turns = int(50)
+write_every = 1
 write_buffer_every = 250
 write_obj_every = 5000
 ## Values to be recorded in the calculation
@@ -289,10 +289,9 @@ try:
                  bunch_dict, beta, gamma, p0)
     print(f'intensity = {intensity:.3e}')
     with GPU(bunch) as context:
-	    for i in range(n_turns):
-		    machine.track(bunch)
-		    if (i+1)%write_every == 0:
-		        bunch_monitor.dump(bunch)
+        for i in range(n_turns):
+            machine.track(bunch)
+            bunch_monitor.dump(bunch)
 except:
     filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
     log_info = traceback.format_exc()

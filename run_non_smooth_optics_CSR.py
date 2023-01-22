@@ -58,7 +58,7 @@ from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMon
 from Visualisations import plot_longitudinal_phase_space, plot_sigma_z_sigma_E, plot_ex_ey, plot_mx_my,\
                            plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_current
 from get_Ekin import get_Ekin
-from make_Impedance import make_Impedance
+from make_Impedance_gpu import make_Impedance
 from get_WW import get_WW
 from make_radiation import make_radiation
 from update_bunch import update_bunch
@@ -71,7 +71,7 @@ from get_parameters_dict import get_parameters_dict
 from get_magnetic_structure_twi import get_magnetic_structure_twi
 from ParticleLoss import ParticleLoss
 
-from PyHEADTAIL.impedances.impedances_gpu_test import Impedance, ImpedanceTable
+from PyHEADTAIL.impedances.impedances_gpu import Impedance, ImpedanceTable
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,SynchrotronRadiationLongitudinal
@@ -258,7 +258,7 @@ charge_scan = np.linspace(charge_min, charge_max, n_scan)
 charge = charge_scan[i]
 intensity = charge/e
 n_turns = int(2e4)
-write_every = 5
+write_every = 1
 write_buffer_every = 250
 write_obj_every = 5000
 ## Values to be recorded in the calculation
@@ -289,10 +289,9 @@ try:
                  bunch_dict, beta, gamma, p0)
     print(f'intensity = {intensity:.3e}')
     with GPU(bunch) as context:
-	    for i in range(n_turns):
-		    machine.track(bunch)
-		    if (i+1)%write_every == 0:
-		        bunch_monitor.dump(bunch)
+        for i in range(n_turns):
+            machine.track(bunch)
+            bunch_monitor.dump(bunch)
 except:
     filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
     log_info = traceback.format_exc()

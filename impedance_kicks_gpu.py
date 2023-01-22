@@ -154,12 +154,13 @@ class ConstantImpedanceKickX(ImpedanceKick):
         experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
-        lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
 
-        new_impedance = impedance * lambda_fft_ratio.get()
+        new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
         new_wake_potential = pycuda.gpuarray.to_gpu(new_wake_potential)
 
@@ -179,12 +180,13 @@ class ConstantImpedanceKickY(ImpedanceKick):
         experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
-  
-        lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
-        new_impedance = impedance * lambda_fft_ratio.get()
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+
+        new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
         new_wake_potential = pycuda.gpuarray.to_gpu(new_wake_potential)
 
@@ -204,12 +206,13 @@ class ConstantImpedanceKickZ(ImpedanceKick):
         experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
-        lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
-        
-        new_impedance = impedance * lambda_fft_ratio.get()
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+
+        new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
         new_wake_potential = pycuda.gpuarray.to_gpu(new_wake_potential)
 
@@ -231,15 +234,16 @@ class DipoleImpedanceKickX(ImpedanceKick):
         experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
                         for s in slice_set_list]
         moments_dens = moments_list[0]/slice_set_list[0].slice_widths
         moments_fft = scipy.fft.rfft(moments_dens.get())
       
-        lambda_fft_ratio = moments_fft/lambda_z_wake_fft.get()
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
 
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
@@ -266,8 +270,9 @@ class DipoleImpedanceKickXY(ImpedanceKick):
         moments_dens = moments_list[0]/slice_set_list[0].slice_widths
         moments_fft = scipy.fft.rfft(moments_dens.get())
       
-        lambda_fft_ratio = moments_fft/lambda_z_wake_fft.get()
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
 
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
@@ -295,8 +300,9 @@ class DipoleImpedanceKickY(ImpedanceKick):
         moments_dens = moments_list[0]/slice_set_list[0].slice_widths
         moments_fft = scipy.fft.rfft(moments_dens.get())
       
-        lambda_fft_ratio = moments_fft/lambda_z_wake_fft.get()
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
 
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
@@ -323,8 +329,9 @@ class DipoleImpedanceKickYX(ImpedanceKick):
         moments_dens = moments_list[0]/slice_set_list[0].slice_widths
         moments_fft = scipy.fft.rfft(moments_dens.get())
       
-        lambda_fft_ratio = moments_fft/lambda_z_wake_fft.get()
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
 
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
@@ -350,8 +357,9 @@ class QuadrupoleImpedanceKickX(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = scipy.fft.rfft(wake_potential_interp.get())
 
-        lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
         new_impedance = impedance * lambda_fft_ratio.get()
         new_wake_potential = scipy.fft.irfft(new_impedance)
@@ -375,8 +383,9 @@ class QuadrupoleImpedanceKickXY(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = scipy.fft.rfft(wake_potential_interp.get())
 
-        lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
         new_impedance = impedance * lambda_fft_ratio.get()
         new_wake_potential = scipy.fft.irfft(new_impedance)
@@ -400,8 +409,9 @@ class QuadrupoleImpedanceKickY(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = scipy.fft.rfft(wake_potential_interp.get())
 
-        lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
         new_impedance = impedance * lambda_fft_ratio.get()
         new_wake_potential = scipy.fft.irfft(new_impedance)
@@ -425,8 +435,9 @@ class QuadrupoleImpedanceKickYX(ImpedanceKick):
         wake_potential_interp = self.wake_function(times)
         impedance = scipy.fft.rfft(wake_potential_interp.get())
 
-        lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
-        lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+        with np.errstate(invalid='ignore'):
+            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
         new_impedance = impedance * lambda_fft_ratio.get()
         new_wake_potential = scipy.fft.irfft(new_impedance)

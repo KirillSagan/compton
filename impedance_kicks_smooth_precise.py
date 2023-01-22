@@ -232,8 +232,9 @@ class DipoleImpedanceKickX(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -259,8 +260,9 @@ class DipoleImpedanceKickXY(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)    
@@ -287,8 +289,9 @@ class DipoleImpedanceKickY(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)
@@ -314,8 +317,9 @@ class DipoleImpedanceKickYX(ImpedanceKick):
 
         moments_fft = np.fft.rfft(moments_list[0]/slice_set_list[0].slice_widths)
         with np.errstate(invalid='ignore'):
-            lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
+            lambda_fft_ratio = moments_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
+            
         new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = np.fft.irfft(new_impedance)
         plt.plot(times/c*1e3, new_wake_potential)

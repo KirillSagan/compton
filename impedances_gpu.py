@@ -30,7 +30,7 @@ from scipy.stats import norm
 from abc import ABCMeta, abstractmethod
 import pycuda
 
-from PyHEADTAIL.impedances.impedance_kicks_gpu_test import *
+from PyHEADTAIL.impedances.impedance_kicks_gpu import *
 from PyHEADTAIL.general.element import Element, Printing
 from PyHEADTAIL.general.decorators import deprecated
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -123,14 +123,11 @@ class Impedance(Element):
         # Set to zero values of lambda z fft above max freq
         lambda_z_fft[n_freq_max:] = lambda_z_fft[n_freq_max:]*0
 
-        lambda_z_fft = pycuda.gpuarray.to_gpu(lambda_z_fft)
-        lambda_z_wake_fft = pycuda.gpuarray.to_gpu(lambda_z_wake_fft)
-
         self.slice_set_deque.appendleft(slice_set)
         self.slice_set_age_deque.appendleft(0.)
 
         for kick in self.wake_kicks:
-            kick.apply(bunch, self.times, lambda_z_fft, lambda_z_wake_fft,
+            kick.apply(bunch, times, lambda_z_fft, lambda_z_wake_fft,
                          self.slice_set_deque)
 
 
