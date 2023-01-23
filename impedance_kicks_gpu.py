@@ -263,7 +263,7 @@ class DipoleImpedanceKickXY(ImpedanceKick):
         slice_set) experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
                         for s in slice_set_list]
@@ -293,7 +293,7 @@ class DipoleImpedanceKickY(ImpedanceKick):
         experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         moments_list = [s.n_macroparticles_per_slice*s.mean_y
                         for s in slice_set_list]
@@ -322,7 +322,7 @@ class DipoleImpedanceKickYX(ImpedanceKick):
         slice_set) experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         moments_list = [s.n_macroparticles_per_slice*s.mean_x
                         for s in slice_set_list]
@@ -355,13 +355,13 @@ class QuadrupoleImpedanceKickX(ImpedanceKick):
         experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         with np.errstate(invalid='ignore'):
             lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
-        new_impedance = impedance * lambda_fft_ratio.get()
+        new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
         new_wake_potential = pycuda.gpuarray.to_gpu(new_wake_potential)
 
@@ -381,13 +381,13 @@ class QuadrupoleImpedanceKickXY(ImpedanceKick):
         the slice_set) experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         with np.errstate(invalid='ignore'):
             lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
-        new_impedance = impedance * lambda_fft_ratio.get()
+        new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
         new_wake_potential = pycuda.gpuarray.to_gpu(new_wake_potential)
 
@@ -407,13 +407,13 @@ class QuadrupoleImpedanceKickY(ImpedanceKick):
         experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         with np.errstate(invalid='ignore'):
             lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
-        new_impedance = impedance * lambda_fft_ratio.get()
+        new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
         new_wake_potential = pycuda.gpuarray.to_gpu(new_wake_potential)
 
@@ -433,13 +433,13 @@ class QuadrupoleImpedanceKickYX(ImpedanceKick):
         the slice_set) experience the kick.
         """
         wake_potential_interp = self.wake_function(times)
-        impedance = scipy.fft.rfft(wake_potential_interp.get())
+        impedance = scipy.fft.rfft(wake_potential_interp)
 
         with np.errstate(invalid='ignore'):
             lambda_fft_ratio = lambda_z_fft/lambda_z_wake_fft
             lambda_fft_ratio[np.isnan(lambda_fft_ratio)] = 0
         
-        new_impedance = impedance * lambda_fft_ratio.get()
+        new_impedance = impedance * lambda_fft_ratio
         new_wake_potential = scipy.fft.irfft(new_impedance)
         new_wake_potential = pycuda.gpuarray.to_gpu(new_wake_potential)
 
