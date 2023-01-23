@@ -1,0 +1,21 @@
+87d86
+< filename_LSC = path_input + 'LSC_wake_1mm.txt'
+241,245d239
+< # LSC
+< fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
+< get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor, del_negative_t = False,
+<        filename = filename_LSC, list_ = ['time','longitudinal'], new_filename = tmp_filename,
+<        NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
+247,254d240
+< impedance_table_LSC,slicer = make_Impedance(tmp_filename, bunch, n_slices = n_slices, 
+<                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
+<                                     list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
+<                                     n_sigma_z = n_sigma_z)
+<                                     
+< list_of_impedance_sources_long.append(impedance_table_LSC)
+< os.close(fd)
+< os.unlink(tmp_filename)
+286c272
+< Impedance_long = Impedance(slicer, *list_of_impedance_sources_long)
+---
+> #Impedance_long = Impedance(slicer, *list_of_impedance_sources_long)
