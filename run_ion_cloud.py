@@ -10,14 +10,16 @@ path_output = path + spec_dir#'output files/'
 filename_magnetic = path_input + 'twi.txt'
 path_to_obj = path_output + 'obj/'
 filename_geom = path_input + 'ebs_geom_full.txt'
+filename_CSR = path_input + 'Shielded_CSR_wake_03mm_20.txt' 
 filename_rw = path_input + 'ebs_rw_full.txt'
 path_to_readme = path_input + 'README.md'
 path_to_p_loss = path_output + 'ParticleLoss/' 
 # Monitors
 monitor_path = path_output + 'monitors/'
+slice_mon_path = monitor_path + 'slice_mon/'
 bunch_filename = monitor_path + 'bunch_mon/'
 
-for dir_ in [bunch_filename,path_to_obj]:
+for dir_ in [bunch_filename,path_to_obj,slice_mon_path]:
     if not os.path.exists(dir_):
         try:
             os.makedirs(dir_)
@@ -31,14 +33,13 @@ sys.path.append(path_to_PyHEADTAIL)
 import numpy as np
 from scipy.constants import c, e, m_e, pi
 import time
-import pycuda.autoinit
 import PyHEADTAIL
 from PyHEADTAIL.general.contextmanager import GPU
 import traceback
 import pandas as pd
 import tempfile
 
-from scipy.constants import e, c, m_e, epsilon_0, hbar
+from scipy.constants import e, c, m_e, m_p, epsilon_0, hbar
 
 from scipy import interpolate
 
@@ -53,6 +54,9 @@ from PyHEADTAIL.particles.particles import Particles
 import PyHEADTAIL.particles.generators as generators
 from PyHEADTAIL.machines.synchrotron import Synchrotron
 from PyHEADTAIL.monitors.monitors import BunchMonitor, SliceMonitor, ParticleMonitor
+from PyHEADTAIL.aperture.aperture import RectangularApertureZ, EllipticalApertureXY
+import PyECLOUD.myfilemanager as mfm
+import PyECLOUD.PyEC4PyHT as PyEC4PyHT
 
 from Visualisations import plot_longitudinal_phase_space, plot_sigma_z_sigma_E, plot_ex_ey, plot_mx_my,\
                            plot_ex_ey_current, plot_mx_my_current, plot_sigma_z_sigma_E_current
@@ -69,8 +73,9 @@ from get_sigma_E import get_sigma_E
 from get_parameters_dict import get_parameters_dict
 from get_magnetic_structure_twi import get_magnetic_structure_twi
 from ParticleLoss import ParticleLoss
+from make_Impedance import make_Impedance
 
-from PyHEADTAIL.impedances.wakes import WakeField, WakeTable
+from PyHEADTAIL.impedances.impedances import Impedance, ImpedanceTable
 from PyHEADTAIL.particles.slicing import UniformBinSlicer, UniformChargeSlicer
 
 from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,SynchrotronRadiationLongitudinal
@@ -192,43 +197,87 @@ nel_mp_ref_0 = P_nTorr * sigma_ion_MBarn / 37.89  # number of real ions/MP
 Dt_ref = 1e-9               
 
 # define apertures and PIC grid size
-chamb_type = 'ellip'
+chamb_type = 'rect'
 x_aper = 25e-3
 y_aper = 10e-3
 
 K_grid = 125.   
-Dh_sc =  y_aper / K_grid#Grid size for space charge
+Dh_x = x_aper/K_grid
+Dh_y = y_aper/K_grid
+Dh_sc = [Dh_x, Dh_y] #Grid size for space charge
 
 
 ## Creating an instance of the machine 
-machine = Synchrotron(optics_mode = 'non-smooth',charge= -e,
-		        s=s,
-		        mass=m_e,
-		        p0=p0,
-		        name=None,
-		        alpha_x=alphax,
-		        beta_x=betax,
-		        D_x=Dx,
-		        alpha_y=alphay,
-		        beta_y=betay,
-		        D_y=Dy,
-		        accQ_x=accQx,
-		        accQ_y=accQy,
-		        Qp_x = Qpx, 
-		        Qp_y = Qpy,
-		        longitudinal_mode='non-linear',
-		        alpha_mom_compaction=alpha_mom_compaction,
-		        h_RF=h_RF,
-		        V_RF=V_RF,
-		        dphi_RF=dphi_RF,
-		        RF_at = RF_at,
-		        p_increment=p_increment)
-		        
-## Creating an instance of the bunch
+betax_avr = parameters_dict['betaxAve']
+betay_avr = parameters_dict['betayAve']
+n_betax_avr = 10
+n_betay_avr = 8
 
-charge = 1.5e-9
+Dx_avr = 0
+Dy_avr = 0
+n_segments = 10
+def make_machine_smooth(Q_s = None,*args, **kwargs):
+    
+    machine = Synchrotron(optics_mode = 'smooth',charge= -e,
+                n_segments = n_segments,
+                circumference = circumference,
+                mass=m_e,
+                p0=p0,
+                beta_x=betax_avr,#!!!!!
+                D_x=Dx_avr,#!!!!!
+                beta_y=betay_avr,#!!!!!!
+                D_y=Dy_avr,#!!!!!!!!!
+                accQ_x=Q_x,
+                accQ_y=Q_y,
+                Qp_x = Qpx, 
+                Qp_y = Qpy,
+                longitudinal_mode='non-linear',
+                alpha_mom_compaction=alpha_mom_compaction,
+                h_RF=h_RF,
+                V_RF=V_RF,
+                dphi_RF=dphi_RF,
+                p_increment=p_increment,
+                RF_at = RF_at,
+                wrap_z = False)
+    return machine 
+
+def make_machine(Q_s = None,*args, **kwargs):
+    
+    machine = Synchrotron(optics_mode = 'non-smooth',charge= -e,
+                s=s,
+                mass=m_e,
+                p0=p0,
+                name=None,
+                alpha_x=alphax,
+                beta_x=betax,
+                D_x=Dx,
+                alpha_y=alphay,
+                beta_y=betay,
+                D_y=Dy,
+                accQ_x=accQx,
+                accQ_y=accQy,
+                Qp_x = Qpx, 
+                Qp_y = Qpy,
+                longitudinal_mode='non-linear',
+                alpha_mom_compaction=alpha_mom_compaction,
+                h_RF=h_RF,
+                V_RF=V_RF,
+                dphi_RF=dphi_RF,
+                RF_at = RF_at,
+                p_increment=p_increment,
+                wrap_z = False)
+    return machine 
+
+machine = make_machine_smooth()
+		        
+
+## Setting Intensity
+charge_scan = np.linspace(charge_min, charge_max, n_scan)
+charge = charge_scan[i]
 intensity = charge/e
-n_macroparticles = int(1e6)
+
+## Creating an instance of the bunch
+n_macroparticles = int(1e5)
 
 bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha_x[0], 
                machine.transverse_map.alpha_y[0],machine.transverse_map.beta_x[0], 
@@ -238,170 +287,94 @@ bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha
 
 bunch_dict = make_dict(bunch)
 
+
 ## Creating an instance of the object responsible for radiation losses
 radiation_long, radiation_transverse = make_radiation(E_loss_ev, machine, Ekin, alpha_mom_compaction, 
                                                       epsn_x, epsn_y, Radiation_Damping_z/t,\
                                                       Radiation_Damping_x/t, Radiation_Damping_y/t,I2,I3,I4,Dx[-1],Dy[-1])
-
 
 ## Creating an instance of the object associated with wake fields
 list_of_wake_sources_long = list()
 list_of_wake_sources_x = list()
 list_of_wake_sources_y = list()
 
-n_slices = 1000
+n_slices = 2000
 slicing_mode = 'n_sigma_z'#'fixed_cuts'
 fixed_cuts_perc_min_max = 0.5
-factor = 0.015
+factor = 1/4
 factor_x = betax_avr/betax[n_betax_avr]
 factor_y = betay_avr/betay[n_betay_avr]
 inverse = -1
-n_sigma_z = 3
+n_sigma_z = 10
 ratio_interp = 4
-NumberPoints = int(3291*ratio_interp)
-min_z = -ratio_interp*9e-2
-max_z = ratio_interp*9e-2
+NumberPoints = int(5e4)
+min_z = -50e-3
+max_z = 50e-3
 
-##geom  
-#long                                   
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_geom, list_ = ['time','longitudinal'], new_filename = tmp_filename,
-       NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
-
-wake_table_geom_long,slicer = make_WW(tmp_filename, bunch,n_slices = n_slices, 
-                                      fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                      list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
-                                      n_sigma_z = n_sigma_z)
-
-list_of_wake_sources_long.append(wake_table_geom_long)
-os.close(fd)
-os.unlink(tmp_filename)
-
-#transverse x
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_geom, list_ = ['time','dipole_x',
-                                          'quadrupole_x'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_geom_trans_x,slicer = make_WW(tmp_filename,bunch, n_slices = n_slices, 
-                                       fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                       list_ = ['time','dipole_x',
-                                                'quadrupole_x'],
-                                       slicing_mode = slicing_mode,
-                                       n_sigma_z = n_sigma_z)
-list_of_wake_sources_x.append(wake_table_geom_trans_x)
-os.close(fd)
-os.unlink(tmp_filename)
-
-#transverse y
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_geom, list_ = ['time','dipole_y',
-                                          'quadrupole_y'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_geom_trans_y,slicer = make_WW(tmp_filename,bunch, n_slices = n_slices, 
-                                       fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                       list_ = ['time','dipole_y',
-                                                'quadrupole_y'],
-                                       slicing_mode = slicing_mode,
-                                       n_sigma_z = n_sigma_z)
-list_of_wake_sources_y.append(wake_table_geom_trans_y)
-os.close(fd)
-os.unlink(tmp_filename)
-
-
-## rw
+## CSR
 #long
 fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor,
-       filename = filename_rw, list_ = ['time','longitudinal'], new_filename = tmp_filename,
+get_WW(machine.beta, sigma_z, inverse=inverse, factor=factor, del_negative_t = False,
+       filename = filename_CSR, list_ = ['time','longitudinal'], new_filename = tmp_filename,
        NumberPoints = NumberPoints, min_z = min_z, max_z = max_z)
 
-wake_table_rw_long,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
+impedance_table_CSR_long,slicer = make_Impedance(tmp_filename, bunch, n_slices = n_slices, 
                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
                                     list_ = ['time','longitudinal'],  slicing_mode = slicing_mode,
                                     n_sigma_z = n_sigma_z)
-
-list_of_wake_sources_long.append(wake_table_rw_long)
 os.close(fd)
 os.unlink(tmp_filename)
 
-#transverse x
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta,sigma_z, inverse=inverse, factor=factor,
-       filename = filename_rw, list_ = ['time','dipole_x',
-                                        'quadrupole_x'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_rw_trans_x,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
-                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                     list_ = ['time','dipole_x',
-                                              'quadrupole_x'],
-                                     slicing_mode = slicing_mode,
-                                     n_sigma_z = n_sigma_z)
-list_of_wake_sources_x.append(wake_table_rw_trans_x)
-os.close(fd)
-os.unlink(tmp_filename)
-
-#transverse y
-fd, tmp_filename = tempfile.mkstemp(suffix='.txt', text=True)
-get_WW(machine.beta,sigma_z, inverse=inverse, factor=factor,
-       filename = filename_rw, list_ = ['time','dipole_y',
-                                        'quadrupole_y'], 
-       new_filename = tmp_filename, NumberPoints = NumberPoints,
-       min_z = min_z, max_z = max_z, factor_x = factor_x, factor_y = factor_y)
-
-wake_table_rw_trans_y,slicer = make_WW(tmp_filename, bunch, n_slices = n_slices, 
-                                     fixed_cuts_perc_min_max = fixed_cuts_perc_min_max,
-                                     list_ = ['time','dipole_y',
-                                              'quadrupole_y'],
-                                     slicing_mode = slicing_mode,
-                                     n_sigma_z = n_sigma_z)
-list_of_wake_sources_y.append(wake_table_rw_trans_y)
-os.close(fd)
-os.unlink(tmp_filename)
-
-wake_fields_long = WakeField(slicer, *list_of_wake_sources_long)
-wake_fields_x = WakeField(slicer, *list_of_wake_sources_x)
-wake_fields_y = WakeField(slicer, *list_of_wake_sources_y)
+Impedance_CSR = Impedance(slicer, impedance_table_CSR_long, sigma_z_wake = 0.3e-3)
 
 
-## Putting everything at an instance of our ring (machine.one_turn_map)
-machine.one_turn_map.insert(n_betax_avr, wake_fields_x)
-machine.one_turn_map.insert(n_betay_avr, wake_fields_y)
-machine.one_turn_map.append(wake_fields_long)
+## Creating an instance of ion cloud
+n_turns = int(1e2)
+n_slices = 300
+n_sigma_z = 3
+bunch_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=n_sigma_z)
+write_buffer_every = 5
+new_slice_mon_filename = slice_mon_path+f'charge={charge*1e9:.3}nC'.replace('.',',')
+slice_mon = SliceMonitor(filename=new_slice_mon_filename,n_steps=n_turns * n_segments, 
+                                        slicer=bunch_slicer, write_buffer_every=write_buffer_every)
+                                        
+# initialize ion cloud with single kick per bunch
+ion_cloud = PyEC4PyHT.Ecloud(L_ecloud=machine.circumference / n_segments, slicer=bunch_slicer,
+                            Dt_ref=Dt_ref, pyecl_input_folder='./pyecloud_config', beam_monitor=slice_mon,
+                            chamb_type=chamb_type, PyPICmode='FFT_OpenBoundary',#'FiniteDifferences_ShortleyWeller',
+                            x_aper=x_aper, y_aper=y_aper,
+                            filename_chm=filename_chm, Dh_sc=Dh_sc,
+                            init_unif_edens_flag=init_unif_edens_flag,
+                            init_unif_edens=init_unif_edens,
+                            cloud_mass=ion_mass, cloud_charge=ion_charge,
+                            gas_ion_flag=gas_ion_flag, unif_frac=unif_frac,
+                            P_nTorr=P_nTorr, sigma_ion_MBarn=sigma_ion_MBarn,
+                            Temp_K=Temp_K, E_init_ion=E_init_ion,
+                            N_mp_max=N_mp_max,
+                            nel_mp_ref_0=nel_mp_ref_0,
+                            B_multip=B_multip_per_eV * machine.p0 / e * c,
+                            switch_model='perfect_absorber',
+                            kick_mode_for_beam_field=True,
+                            verbose=False)
+                            
+machine.install_after_each_transverse_segment(ion_cloud)                            
 
 
-## Setting Intensity and necessary calculation parameters
-charge_scan = np.linspace(charge_min, charge_max, n_scan)
-charge = charge_scan[i]
-intensity = charge/e
-n_turns = int(2e4)
+# Creating z Aperture 
+z_lost = 25e-3
+Aperture_z = RectangularApertureZ(z_low = -z_lost, z_high = z_lost)
+
+# Creating xy Aperture
+x_aperture = 25e-3
+y_aperture = 10e-3
+Aperture_xy = EllipticalApertureXY(x_aperture, y_aperture)
+
+
+## Setting necessary calculation parameters
 write_every = 1
 write_buffer_every = 250
-## Values to be recorded in the calculation
-#cons = range(1,11)
-#names_long = ['S_n_long_'+f'{i}' for i in cons]
-#names_trans = ['S_n_trans_'+f'{i}' for i in cons]
-#names_trans_y = ['S_n_trans_y_'+f'{i}' for i in cons]
-#bunch_monitor_scan = list()
-
-charge = charge*1e9 
-new_bunch_filename = bunch_filename+f'charge={charge:.3}nC'.replace('.',',')
-bunch_monitor = BunchMonitor(
-		filename=new_bunch_filename,n_steps=int(n_turns/write_every),
-		write_buffer_every=write_every,
-		parameters_dict={'Q_x': Q_x,'Q_y':Q_y},
-		stats_to_store = [
-		    'mean_z', 'mean_dp','mean_x','mean_y',
-		    'sigma_z', 'sigma_dp', 'sigma_x','sigma_y',
-		    'epsn_x', 'epsn_y'])
+write_obj_every = 5000
+check_aperture_every = 50
 
 
 ## Let's start
@@ -412,15 +385,13 @@ try:
     update_bunch(bunch, intensity,
                  bunch_dict, beta, gamma, p0)
     print(f'intensity = {intensity:.3e}')
-    for i in range(n_turns):
-        if (time.time()-t0)/60/60 >= (24*3-0.1):
-            raise RuntimeError      
-        with GPU(bunch) as context:
+    with GPU(bunch) as context:
+        for i in range(n_turns):
             machine.track(bunch)
-        radiation_long.track(bunch)
-        radiation_transverse.track(bunch)
-        if (i+1)%write_every == 0:
             bunch_monitor.dump(bunch)
+            if (i+1)%check_aperture_every == 0:
+                Aperture_z.track(bunch)
+                Aperture_xy.track(bunch)
 except:
     filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
     log_info = traceback.format_exc()

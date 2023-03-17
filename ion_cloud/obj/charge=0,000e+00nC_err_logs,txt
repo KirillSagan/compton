@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "run_ion_cloud_test.py", line 386, in <module>
+    with GPU(bunch) as context:
+  File "/home/kiruha/PyFRIENDS_python3/PyHEADTAIL/PyHEADTAIL/general/contextmanager.py", line 173, in __enter__
+    setattr(self.bunch, coord, gpuarray.to_gpu(obj,
+NameError: name 'gpuarray' is not defined
