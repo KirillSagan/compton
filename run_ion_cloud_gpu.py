@@ -387,11 +387,12 @@ try:
     update_bunch(bunch, intensity,
                  bunch_dict, beta, gamma, p0)
     print(f'intensity = {intensity:.3e}')
-    for i in range(n_turns):
-        machine.track(bunch)
-        if (i+1)%check_aperture_every == 0:
-            Aperture_z.track(bunch)
-            Aperture_xy.track(bunch)
+    with GPU(bunch) as context:
+        for i in range(n_turns):
+            machine.track(bunch)
+            if (i+1)%check_aperture_every == 0:
+                Aperture_z.track(bunch)
+                Aperture_xy.track(bunch)
 except:
     filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
     log_info = traceback.format_exc()
