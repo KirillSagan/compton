@@ -1,14 +1,14 @@
 #!/bin/sh
-declare -a names=("ion_cloud_smooth")
+declare -a names=("non_smooth_optics_TMCI")
 
 for name in "${names[@]}"
 do
 
 export name
-export charge_min_nC=0.
-export charge_max_nC=1.5
-export n_scan=1
-for i in {0..0}
+export charge_min_nC=0.0
+export charge_max_nC=7.5
+export n_scan=16
+for i in {0..15}
 do
 
 export i

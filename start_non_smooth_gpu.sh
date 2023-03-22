@@ -1,11 +1,11 @@
 #!/bin/sh
-declare -a names=("ion_cloud_smooth")
+declare -a names=("ion_cloud_gpu")
 
 for name in "${names[@]}"
 do
 
 export name
-export charge_min_nC=0.
+export charge_min_nC=1.5
 export charge_max_nC=1.5
 export n_scan=1
 for i in {0..0}
