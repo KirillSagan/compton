@@ -1,9 +1,10 @@
 import os
+import copy
 ## Specifying the paths to the files
-spec_dir ='ion_cloud/'
+spec_dir ='ion_cloud_smooth_44/'
 #path_to_repo = ''
 #path = path_to_repo + 'PyHEADTAIL/projects/'+ spec_dir
-path = '/media/kiruha/05c8b172-6921-4a5d-8c2d-56e23e9150ad/science_repo/compton/'
+path = '/s/ls4/users/kssagan/compton/'#'/home/kiruha/science_repo/compton/'
 path_input = path + 'input/'
 path_output = path + spec_dir#'output files/'
 
@@ -28,8 +29,8 @@ for dir_ in [bunch_filename,path_to_obj,slice_mon_path]:
             
 import sys
 import argparse
-path_to_PyHEADTAIL = '/home/kiruha/PyFRIENDS/PyHEADTAIL'
-path_to_PyFRIENDS = '/home/kiruha/PyFRIENDS'
+path_to_PyHEADTAIL = '/s/ls4/users/kssagan/PyFRIENDS/PyHEADTAIL'#'/home/kiruha/PyHEADTAIL'
+path_to_PyFRIENDS = '/s/ls4/users/kssagan/PyFRIENDS'
 sys.path.append(path_to_PyHEADTAIL)
 sys.path.append(path_to_PyFRIENDS)
 import numpy as np
@@ -85,7 +86,7 @@ from PyHEADTAIL.radiation.radiation import SynchrotronRadiationTransverse,Synchr
 ## Reading arguments from command-line
 def createParser ():
     parser = argparse.ArgumentParser()
-    parser.add_argument('i',type=int)
+    #parser.add_argument('i',type=int)
     parser.add_argument('charge_min_nC',type=float)
     parser.add_argument('charge_max_nC',type=float)
     parser.add_argument('n_scan',type=int)
@@ -96,7 +97,7 @@ args = parser.parse_args()
 charge_min = args.charge_min_nC*1e-9
 charge_max = args.charge_max_nC*1e-9
 n_scan = args.n_scan
-i = args.i
+#i = args.i
 
 ## Reading the parameters of the machine and the beam from the file README.md
 parameters_list = ['Energy', 'Circumference', 'Revolution time', 'Betatron tune H',
@@ -165,49 +166,6 @@ epsn_y = 7.436459488204655e-09/14*beta*gamma
 ## Getting the twiss functions 
 s, betax, betay, alphax, alphay, Dx, Dy, accQx, accQy = get_magnetic_structure_twi(filename_magnetic)
 
-betax_avr = parameters_dict['betaxAve']
-betay_avr = parameters_dict['betayAve']
-n_betax_avr = 10
-n_betay_avr = 8
-
-# define pyecloud parameters
-N_bunches = 1      
-filename_chm = None
-B_multip_per_eV = [0.]
-B_multip_per_eV = np.array(B_multip_per_eV)
-
-init_unif_edens_flag = -1
-init_unif_edens = None
-
-# rest gas parameters
-gas_ion_flag = 1
-unif_frac = 0.
-P_nTorr = 1.
-sigma_ion_MBarn = 1.5
-Temp_K = 300.
-A = 44.
-E_init_ion = 0.157e-27 * A
-ion_mass = A * m_p
-ion_charge = e
-
-# MPs and MP size (set to match with FASTION code)
-N_MP_ele_init = 501 * N_bunches  #
-N_mp_max = N_MP_ele_init*2
-nel_mp_ref_0 = P_nTorr * sigma_ion_MBarn / 37.89  # number of real ions/MP
-
-# time step (set to bunch spacing)
-Dt_ref = 1e-9               
-
-# define apertures and PIC grid size
-chamb_type = 'rect'
-x_aper = 25e-3
-y_aper = 10e-3
-
-K_grid = 125.   
-Dh_x = x_aper/K_grid
-Dh_y = y_aper/K_grid
-Dh_sc = [Dh_x, Dh_y] #Grid size for space charge
-
 
 ## Creating an instance of the machine 
 betax_avr = parameters_dict['betaxAve']
@@ -270,12 +228,11 @@ def make_machine(Q_s = None,*args, **kwargs):
                 wrap_z = False)
     return machine 
 
-machine = make_machine_smooth()
-		        
+machine = make_machine_smooth()        
 
 ## Setting Intensity
 charge_scan = np.linspace(charge_min, charge_max, n_scan)
-charge = charge_scan[i]
+charge = charge_scan[0]
 intensity = charge/e
 
 ## Creating an instance of the bunch
@@ -287,6 +244,7 @@ bunch = generate_bunch(intensity, n_macroparticles, machine.transverse_map.alpha
                machine.transverse_map.D_x[0],machine.transverse_map.D_y[0],
                sigma_z,gamma,p0,epsn_x,epsn_y,t)
 
+bunch_scan = [copy.deepcopy(bunch) for i in range(n_scan)]
 bunch_dict = make_dict(bunch)
 
 
@@ -294,8 +252,8 @@ bunch_dict = make_dict(bunch)
 radiation_long, radiation_transverse = make_radiation(E_loss_ev, machine, Ekin, alpha_mom_compaction, 
                                                       epsn_x, epsn_y, Radiation_Damping_z/t,\
                                                       Radiation_Damping_x/t, Radiation_Damping_y/t,I2,I3,I4,Dx[-1],Dy[-1])
-
-"""## Creating an instance of the object associated with wake fields
+"""
+## Creating an instance of the object associated with wake fields
 list_of_wake_sources_long = list()
 list_of_wake_sources_x = list()
 list_of_wake_sources_y = list()
@@ -330,36 +288,19 @@ os.unlink(tmp_filename)
 Impedance_CSR = Impedance(slicer, impedance_table_CSR_long, sigma_z_wake = 0.3e-3)
 """
 
-## Creating an instance of ion cloud
-n_turns = int(1e0)
+## Creating an instances of slice monitor
+n_turns = int(2)
 n_slices = 300
 n_sigma_z = 3
 bunch_slicer = UniformBinSlicer(n_slices=n_slices, n_sigma_z=n_sigma_z)
 write_buffer_every = 5
-new_slice_mon_filename = slice_mon_path+f'charge={charge*1e9:.3}nC'.replace('.',',')
-slice_mon = SliceMonitor(filename=new_slice_mon_filename,n_steps=n_turns * n_segments, 
-                                        slicer=bunch_slicer, write_buffer_every=write_buffer_every)
-                                        
-# initialize ion cloud with single kick per bunch
-ion_cloud = PyEC4PyHT.Ecloud(L_ecloud=machine.circumference / n_segments, slicer=bunch_slicer,
-                            Dt_ref=Dt_ref, pyecl_input_folder='./pyecloud_config', beam_monitor=slice_mon,
-                            chamb_type=chamb_type, PyPICmode='FFT_OpenBoundary',#'FiniteDifferences_ShortleyWeller',
-                            x_aper=x_aper, y_aper=y_aper,
-                            filename_chm=filename_chm, Dh_sc=Dh_sc,
-                            init_unif_edens_flag=init_unif_edens_flag,
-                            init_unif_edens=init_unif_edens,
-                            cloud_mass=ion_mass, cloud_charge=ion_charge,
-                            gas_ion_flag=gas_ion_flag, unif_frac=unif_frac,
-                            P_nTorr=P_nTorr, sigma_ion_MBarn=sigma_ion_MBarn,
-                            Temp_K=Temp_K, E_init_ion=E_init_ion,
-                            N_mp_max=N_mp_max,
-                            nel_mp_ref_0=nel_mp_ref_0,
-                            B_multip=B_multip_per_eV * machine.p0 / e * c,
-                            switch_model='perfect_absorber',
-                            kick_mode_for_beam_field=True,
-                            verbose=False)
-                            
-machine.install_after_each_transverse_segment(ion_cloud)                            
+
+slice_mon_scan = list()
+for charge in charge_scan:
+    new_slice_mon_filename = slice_mon_path+f'charge={charge*1e9:.3}nC'.replace('.',',')
+    slice_mon_scan.append(SliceMonitor(filename=new_slice_mon_filename,n_steps=n_turns * n_segments, 
+                                            slicer=bunch_slicer, write_buffer_every=write_buffer_every))
+                                                                 
 
 
 # Creating z Aperture 
@@ -372,26 +313,96 @@ y_aperture = 10e-3
 Aperture_xy = EllipticalApertureXY(x_aperture, y_aperture)
 
 
+# define pyecloud parameters
+N_bunches = 1      
+filename_chm = None
+B_multip_per_eV = [0.]
+B_multip_per_eV = np.array(B_multip_per_eV)
+
+init_unif_edens_flag = -1
+init_unif_edens = None
+
+# rest gas parameters
+gas_ion_flag = 1
+unif_frac = 0.
+P_nTorr = 1.
+sigma_ion_MBarn = 1.5
+Temp_K = 300.
+A = 44.
+E_init_ion = 0.157e-27 * A
+ion_mass = A * m_p
+ion_charge = e
+
+# MPs and MP size (set to match with FASTION code)
+N_MP_ele_init = 501 * 5#
+N_mp_max = N_MP_ele_init
+nel_mp_ref_0 = P_nTorr * sigma_ion_MBarn / 37.89  # number of real ions/MP
+
+# time step (set to bunch spacing)
+Dt_ref = 1e-9               
+
+# define apertures and PIC grid size
+chamb_type = 'rect'
+x_aper = 25e-3
+y_aper = 10e-3
+
 ## Setting necessary calculation parameters
-write_every = 1
-write_buffer_every = 250
 write_obj_every = 5000
 check_aperture_every = 50
 
-
-## Let's start
-print('start tracking!')
-t0 = time.time()
-
-try:
-    update_bunch(bunch, intensity,
-                 bunch_dict, beta, gamma, p0)
+## The function that performs the calculation with different intensities
+def run(i, bunch, charge, slice_mon): 
+    intensity = charge/e 
     print(f'intensity = {intensity:.3e}')
+    update_bunch(bunch,intensity,
+                 bunch_dict,beta,gamma,p0)
+    # initialize ion cloud with single kick per bunch
+    K_grid = 125.+10*i   
+    Dh_x = x_aper/K_grid
+    Dh_y = y_aper/K_grid
+    Dh_sc = [Dh_x, Dh_y] #Grid size for space charge
+    ion_cloud = PyEC4PyHT.Ecloud(L_ecloud=machine.circumference / n_segments, slicer=bunch_slicer,
+                                Dt_ref=Dt_ref, pyecl_input_folder='./pyecloud_config', beam_monitor=slice_mon,
+                                chamb_type=chamb_type, PyPICmode='FFT_OpenBoundary',#'FiniteDifferences_ShortleyWeller',
+                                x_aper=x_aper, y_aper=y_aper,
+                                filename_chm=filename_chm, Dh_sc=Dh_sc,
+                                init_unif_edens_flag=init_unif_edens_flag,
+                                init_unif_edens=init_unif_edens,
+                                cloud_mass=ion_mass, cloud_charge=ion_charge,
+                                gas_ion_flag=gas_ion_flag, unif_frac=unif_frac,
+                                P_nTorr=P_nTorr, sigma_ion_MBarn=sigma_ion_MBarn,
+                                Temp_K=Temp_K, E_init_ion=E_init_ion,
+                                N_mp_max=N_mp_max,
+                                nel_mp_ref_0=nel_mp_ref_0,
+                                B_multip=B_multip_per_eV * machine.p0 / e * c,
+                                switch_model='perfect_absorber',
+                                kick_mode_for_beam_field=True,
+                                verbose=False)
+    machine.install_after_each_transverse_segment(ion_cloud)
+    print(f'len of map: {len(machine.one_turn_map)}')
     for i in range(n_turns):
+        if (t0-time.time())/60/60 >= (24*3-1):
+            raise RuntimeError    
         machine.track(bunch)
         if (i+1)%check_aperture_every == 0:
             Aperture_z.track(bunch)
             Aperture_xy.track(bunch)
+    nx, ny = ion_cloud.spacech_ele.PyPICobj.nx, ion_cloud.spacech_ele.PyPICobj.ny
+    print(f'For nx={nx}, ny = {ny}\nComputing time per turn = {(time.time()-t0)/60/n_turns} min')
+    return [1]
+
+iterable = list()
+for i in range(n_scan):
+    iterable.append((i,bunch_scan[i], charge_scan[i], slice_mon_scan[i]))
+
+## Let's start
+from multiprocessing import Process, Pool
+processes = n_scan ## Numbers of threads used for calculation
+print('start tracking!')
+t0 = time.time()
+try:
+    with Pool(processes = processes) as pool:
+        results = list(pool.starmap(run, iterable))
 except:
     filename_err = path_to_obj + f'charge={charge:.3e}nC_err_logs.txt'.replace('.',',')
     log_info = traceback.format_exc()
@@ -400,6 +411,6 @@ except:
         f.write(log_info)
     
 finally:
-    print(f'Qpx = {Qpx}\tQpy = {Qpy}\nCharge={charge:.3}nC\nTurn={i}\nComputing time per turn = {(time.time()-t0)/60/n_turns} min')
+    print(f'Qpx = {Qpx}\tQpy = {Qpy}\nCharge={charge:.3}nC\nTotal computing time per turn = {(time.time()-t0)/60/n_turns} min')
     bunch_dict = make_dict(bunch)
     #save_obj(path=path_to_obj, obj=bunch_dict, name=f'turns={i},charge={charge:.3e}nC')
